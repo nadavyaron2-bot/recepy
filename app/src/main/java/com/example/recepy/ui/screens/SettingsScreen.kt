@@ -1,0 +1,564 @@
+﻿package com.example.recepy.ui.screens
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.example.recepy.R
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import com.example.recepy.data.preferences.AppTheme
+import com.example.recepy.data.preferences.ThemeMode
+import com.example.recepy.ui.theme.BluePrimary
+import com.example.recepy.ui.theme.GreenPrimary
+import com.example.recepy.ui.theme.OrangePrimary
+import com.example.recepy.ui.theme.PinkPrimary
+import com.example.recepy.ui.theme.PurplePrimary
+import java.net.URI
+
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+
+// מחלץ domain נקי מ-URL (ללא www. וללא path)
+fun extractDomain(url: String): String {
+    return try {
+        URI(url).host?.removePrefix("www.") ?: url
+    } catch (e: Exception) {
+        url
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    themeMode: ThemeMode,
+    onThemeSelected: (ThemeMode) -> Unit,
+    appTheme: AppTheme,
+    onAppThemeSelected: (AppTheme) -> Unit,
+    onBack: () -> Unit,
+    keepScreenOn: Boolean,
+    onKeepScreenOnToggle: () -> Unit,
+    // domains = Map<domain, recipeCount>  למשל {"mako.co.il" -> 5, "foody.co.il" -> 3}
+    domainCounts: Map<String, Int>,
+    onDeleteByDomains: (Set<String>) -> Unit,
+    onExportAll: () -> Unit = {},
+    onImportFromFile: (android.net.Uri) -> Unit = {},
+    isImporting: Boolean = false,
+    systemUpdateMessage: String? = null,
+    appUpdateMessage: String? = null,
+    onCheckForUpdates: () -> Unit = {},
+    onCheckAppUpdate: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    modifier: Modifier = Modifier
+) {
+    var showDeleteDialog  by remember { mutableStateOf(false) }
+    var selectedDomains   by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    val allDomains = domainCounts.keys.sorted()
+
+    // ── Delete dialog ─────────────────────────────────────────────────────────
+    if (showDeleteDialog) {
+        val allSelected = selectedDomains.size == allDomains.size
+
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+                selectedDomains  = emptySet()
+            },
+            title = { Text(stringResource(R.string.delete_by_source_title)) },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 380.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.delete_by_source_message),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // "בחר הכל"
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.select_all),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            val total = domainCounts.values.sum()
+                            Text(
+                                text = "$total מתכונים",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Checkbox(
+                            checked = allSelected,
+                            onCheckedChange = { checked ->
+                                selectedDomains = if (checked) allDomains.toSet() else emptySet()
+                            }
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    // שורה לכל domain — פעם אחת בלבד
+                    allDomains.forEach { domain ->
+                        val count   = domainCounts[domain] ?: 0
+                        val checked = domain in selectedDomains
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = domain,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = "$count מתכונים",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { isChecked ->
+                                    selectedDomains = if (isChecked)
+                                        selectedDomains + domain
+                                    else
+                                        selectedDomains - domain
+                                }
+                            )
+                        }
+
+                        HorizontalDivider()
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteByDomains(selectedDomains)
+                        showDeleteDialog = false
+                        selectedDomains  = emptySet()
+                    },
+                    enabled = selectedDomains.isNotEmpty(),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    val count = selectedDomains.sumOf { domainCounts[it] ?: 0 }
+                    Text(stringResource(R.string.delete_confirm) + " ($count)")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    selectedDomains  = emptySet()
+                }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // ── Screen ────────────────────────────────────────────────────────────────
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
+                    }
+                }
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(stringResource(R.string.appearance_title))
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            Text(
+                text = "מצב תצוגה",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                ThemeMode.entries.forEachIndexed { index, mode ->
+                    SegmentedButton(
+                        selected = mode == themeMode,
+                        onClick = { onThemeSelected(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = ThemeMode.entries.size
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(mode.toLabel())
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "צבע ערכת נושא",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AppTheme.entries.forEach { theme ->
+                    val color = when (theme) {
+                        AppTheme.ORANGE -> OrangePrimary
+                        AppTheme.BLUE -> BluePrimary
+                        AppTheme.GREEN -> GreenPrimary
+                        AppTheme.PINK -> PinkPrimary
+                        AppTheme.PURPLE -> PurplePrimary
+                    }
+                    val isSelected = theme == appTheme
+                    
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .clickable { onAppThemeSelected(theme) }
+                            .padding(if (isSelected) 4.dp else 0.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.3f))
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── Keep screen on ────────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = stringResource(R.string.keep_screen_on_title),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = stringResource(R.string.keep_screen_on_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = keepScreenOn,
+                    onCheckedChange = { onKeepScreenOnToggle() }
+                )
+            }
+
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── Data ──────────────────────────────────────────────────────────
+            Text(stringResource(R.string.data_title))
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = stringResource(R.string.delete_all_title),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = stringResource(R.string.delete_all_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedButton(
+                    onClick = { showDeleteDialog = true },
+                    enabled = domainCounts.isNotEmpty(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(stringResource(R.string.delete_all_button))
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── Export/Import ─────────────────────────────────────────────────
+            Text(stringResource(R.string.export_import_title))
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // Export
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.export_recipes_title),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = stringResource(R.string.export_recipes_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedButton(
+                    onClick = onExportAll,
+                    enabled = domainCounts.isNotEmpty()
+                ) {
+                    Text(stringResource(R.string.export_button))
+                }
+            }
+
+            // Import
+            val filePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+            ) { uri ->
+                if (uri != null) onImportFromFile(uri)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.import_recipes_title),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = stringResource(R.string.import_recipes_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedButton(
+                    onClick = { filePickerLauncher.launch("application/json") }
+                ) {
+                    Text(stringResource(R.string.import_button))
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── Updates ───────────────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "עדכון מתכוני מערכת",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "בדוק אם נוספו מתכונים חדשים לאוסף המובנה",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedButton(
+                    onClick = onCheckForUpdates,
+                    enabled = !isImporting
+                ) {
+                    Text("בדוק עדכון")
+                }
+            }
+
+            // הודעת סטטוס קטנה מתחת לכפתור
+            systemUpdateMessage?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── App Update ────────────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "עדכון אפליקציה",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "בדוק אם קיימת גרסה חדשה של האפליקציה",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedButton(
+                    onClick = onCheckAppUpdate
+                ) {
+                    Text("בדוק")
+                }
+            }
+
+            // הודעת סטטוס קטנה מתחת לכפתור
+            appUpdateMessage?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── App Info ──────────────────────────────────────────────────────
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val totalRecipes = domainCounts.values.sum()
+                Text(
+                    text = "סה\"כ מתכונים: $totalRecipes",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val packageInfo = remember {
+                    runCatching {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+                        } else {
+                            @Suppress("DEPRECATION")
+                            context.packageManager.getPackageInfo(context.packageName, 0)
+                        }
+                    }.getOrNull()
+                }
+                val versionName = packageInfo?.versionName ?: "1.0.0"
+                
+                Text(
+                    text = "גרסה $versionName",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeMode.toLabel(): String {
+    return when (this) {
+        ThemeMode.LIGHT  -> stringResource(R.string.theme_light)
+        ThemeMode.DARK   -> stringResource(R.string.theme_dark)
+        ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
+    }
+}

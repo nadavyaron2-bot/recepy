@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Recepy" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/holo_orange_dark</item>
+<!--        <item name="windowSplashScreenBrandingImage">@drawable/my_app_name_text</item>-->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/app_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.Recepy</item>
+
+    </style>
+</resources>

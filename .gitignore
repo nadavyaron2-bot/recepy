@@ -1,0 +1,22 @@
+*.iml
+.gradle
+!gradle/wrapper/gradle-wrapper.jar
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+# Avoid ignoring the update folder contents even if /build is ignored
+!/update/
+!/update/*
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+tools/last_extraction_debug.html
+tools/last_extraction_lines.txt
+tools/test_seed.json

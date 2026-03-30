@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_recipe"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher_foreground"
+        android:shortcutShortLabel="@string/shortcut_add_recipe"
+        android:shortcutLongLabel="@string/shortcut_add_recipe_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.recepy"
+            android:targetClass="com.example.recepy.MainActivity">
+            <extra android:name="open_action" android:value="add_recipe" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="shopping_list"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher_foreground"
+        android:shortcutShortLabel="@string/shortcut_shopping_list"
+        android:shortcutLongLabel="@string/shortcut_shopping_list_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.recepy"
+            android:targetClass="com.example.recepy.MainActivity">
+            <extra android:name="open_tab" android:value="shopping" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>
