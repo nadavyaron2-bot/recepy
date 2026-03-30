@@ -2,7 +2,7 @@ package com.example.recepy.viewmodel
 
 import android.app.Application
 import android.content.Context
-import android.content.SharedPreferences
+import androidx.core.content.edit
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.glance.appwidget.updateAll
@@ -65,6 +65,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _sortByAlpha = MutableStateFlow(prefs.getBoolean("sort_alpha", false))
     val sortByAlpha: StateFlow<Boolean> = _sortByAlpha.asStateFlow()
 
+    private val _searchByIngredients = MutableStateFlow(false)
+    val searchByIngredients: StateFlow<Boolean> = _searchByIngredients.asStateFlow()
+
+    fun toggleSearchMode() {
+        _searchByIngredients.value = !_searchByIngredients.value
+    }
+
     private val _checkedIngredientsMap = MutableStateFlow<Map<Long, Set<Int>>>(emptyMap())
     val checkedIngredientsMap: StateFlow<Map<Long, Set<Int>>> = _checkedIngredientsMap.asStateFlow()
 
@@ -98,21 +105,54 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val filteredRecipes: StateFlow<List<Recipe>> = combine(
-        savedRecipes, searchQuery, sortByAlpha, selectedTagFilters, lastCookedRecipe
-    ) { recipes, query, sortByAlpha, tagFilters, lastCooked ->
-        withContext(Dispatchers.Default) {
-            var filtered = if (query.isBlank()) recipes else recipes.filter { it.title.contains(query, true) }
-            if (tagFilters.isNotEmpty()) {
-                filtered = filtered.filter { recipe -> recipe.tags.containsAll(tagFilters) }
-            }
-            val sorted = if (sortByAlpha) filtered.sortedBy { it.title } else filtered.sortedByDescending { it.dateAdded.takeIf { d -> d > 0L } ?: it.id }
-            val finalSorted = sorted.sortedByDescending { it.isFavorite }
+        listOf(
+            savedRecipes,
+            searchQuery,
+            sortByAlpha,
+            selectedTagFilters,
+            lastCookedRecipe,
+            searchByIngredients
+        )
+    ) { array ->
+        @Suppress("UNCHECKED_CAST")
+        val recipes = array[0] as List<Recipe>
+        val query = array[1] as String
+        val alpha = array[2] as Boolean
+        @Suppress("UNCHECKED_CAST")
+        val tagFilters = array[3] as Set<String>
+        val lastCooked = array[4] as Recipe?
+        val ingredientsMode = array[5] as Boolean
 
-            if (query.isBlank() && tagFilters.isEmpty() && lastCooked != null) {
-                finalSorted.filter { it.id != lastCooked.id }
+        val filtered = if (query.isBlank()) {
+            recipes
+        } else {
+            if (ingredientsMode) {
+                recipes.filter { recipe ->
+                    recipe.ingredients.any { it.contains(query, true) } || recipe.title.contains(query, true)
+                }
             } else {
-                finalSorted
+                recipes.filter { it.title.contains(query, true) }
             }
+        }
+        
+        val afterTags = if (tagFilters.isNotEmpty()) {
+            filtered.filter { recipe -> recipe.tags.containsAll(tagFilters) }
+        } else {
+            filtered
+        }
+        
+        val sorted = if (alpha) {
+            afterTags.sortedBy { it.title }
+        } else {
+            afterTags.sortedWith(compareByDescending<Recipe> { it.dateAdded }.thenByDescending { it.id })
+        }
+
+        val finalSorted = sorted.sortedByDescending { it.isFavorite }
+
+        if (query.isBlank() && tagFilters.isEmpty() && lastCooked != null) {
+            finalSorted.filter { it.id != lastCooked.id }
+        } else {
+            finalSorted
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -123,7 +163,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         importBundledRecipesOnAppUpdate()
         syncWithRemoteSystemRecipes()
         cleanupOldUpdates()
-        checkForAppUpdate(application) // בדיקה אוטומטית בכל פתיחה
+        checkForAppUpdate(application)
     }
 
     private fun cleanupOldUpdates() {
@@ -225,7 +265,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleSort() {
         val newValue = !_sortByAlpha.value
         _sortByAlpha.value = newValue
-        prefs.edit().putBoolean("sort_alpha", newValue).apply()
+        prefs.edit { putBoolean("sort_alpha", newValue) }
     }
     fun toggleFavorite(recipe: Recipe) { viewModelScope.launch { repository.saveRecipe(recipe.copy(isFavorite = !recipe.isFavorite)) } }
     fun saveManualRecipe(title: String, ingredients: String, steps: String, tags: List<String>, imageUrl: String?) {
@@ -274,7 +314,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val lastImportedUpdateTime = updateImportPrefs.getLong(KEY_LAST_IMPORTED_UPDATE_TIME, 0L)
             if (appLastUpdateTime <= lastImportedUpdateTime) return@launch
             runCatching { withContext(Dispatchers.IO) { repository.importBundledRecipes(application) } }
-                .onSuccess { updateImportPrefs.edit().putLong(KEY_LAST_IMPORTED_UPDATE_TIME, appLastUpdateTime).apply() }
+                .onSuccess { updateImportPrefs.edit { putLong(KEY_LAST_IMPORTED_UPDATE_TIME, appLastUpdateTime) } }
         }
     }
 
@@ -384,7 +424,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isImporting.value = true
             _systemUpdateMessage.value = "בודק..."
-            val context = getApplication<android.app.Application>().applicationContext
+            val context = getApplication<Application>().applicationContext
             
             val remoteUrl = "https://raw.githubusercontent.com/nadavyaron2-bot/recepy/refs/heads/main/system_recipes.json"
             val insertedCount = runCatching { 

@@ -20,3 +20,4 @@ local.properties
 tools/last_extraction_debug.html
 tools/last_extraction_lines.txt
 tools/test_seed.json
+app/debug.keystore

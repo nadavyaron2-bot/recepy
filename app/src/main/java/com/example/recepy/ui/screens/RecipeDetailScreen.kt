@@ -7,6 +7,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -99,6 +101,8 @@ fun RecipeDetailScreen(
 
     val shareGraphicsLayer = rememberGraphicsLayer()
     var isShareCardReady by remember(recipe?.id) { mutableStateOf(false) }
+
+    var showCookingMode by remember { mutableStateOf(false) }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -236,7 +240,6 @@ fun RecipeDetailScreen(
                             HeaderSection(
                                 title = editedTitle,
                                 imageUrl = editedImageUrl,
-                                sourceUrl = recipe.sourceUrl,
                                 isEditing = isEditing,
                                 onTitleChange = { editedTitle = it },
                                 onImageUrlChange = { editedImageUrl = it },
@@ -259,7 +262,9 @@ fun RecipeDetailScreen(
                                     }
                                 },
                                 onEditStart = { isEditing = true },
-                                onOpenSource = { uriHandler.openUri(it) }
+                                onCookingModeStart = { showCookingMode = true },
+                                onOpenSource = { uriHandler.openUri(it) },
+                                sourceUrl = recipe.sourceUrl
                             )
                         }
 
@@ -580,6 +585,128 @@ fun RecipeDetailScreen(
                     }
                 )
             }
+
+            if (showCookingMode && recipe != null) {
+                CookingModeScreen(
+                    recipe = recipe,
+                    onDismiss = { showCookingMode = false }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CookingModeScreen(
+    recipe: Recipe,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        // Here we would ideally use a Window flag to keep screen on, 
+        // but in a Composable sub-view we can use a View-based approach or assume the user has the global setting.
+        // For now, we'll focus on the UI.
+        onDispose { }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = recipe.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+
+            val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { recipe.steps.size + 1 })
+            
+            androidx.compose.foundation.pager.HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 32.dp),
+                pageSpacing = 16.dp
+            ) { page ->
+                Card(
+                    modifier = Modifier.fillMaxSize().padding(vertical = 32.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                        if (page == 0) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("מצרכים", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(24.dp))
+                                LazyColumn {
+                                    items(recipe.ingredients) { ingredient ->
+                                        Text(
+                                            text = "• $ingredient",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            lineHeight = 32.sp
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            val stepIndex = page - 1
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("שלב $page מתוך ${recipe.steps.size}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Text(
+                                    text = recipe.steps[stepIndex],
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    lineHeight = 44.sp,
+                                    modifier = Modifier.verticalScroll(rememberScrollState())
+                                )
+                                
+                                val timerMins = extractTimerMinutes(recipe.steps[stepIndex])
+                                if (timerMins != null) {
+                                    Spacer(modifier = Modifier.height(32.dp))
+                                    Button(
+                                        onClick = { RecipeTimerManager.startTimer(context, timerMins * 60, recipe.title) },
+                                        shape = CircleShape,
+                                        modifier = Modifier.height(56.dp)
+                                    ) {
+                                        Icon(Icons.Default.Timer, null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("הפעל טיימר ($timerMins דק')", style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Row(
+                Modifier.height(50.dp).fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(recipe.steps.size + 1) { iteration ->
+                    val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    Box(
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .size(10.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -614,7 +741,8 @@ fun extractTimerMinutes(text: String): Int? {
 fun HeaderSection(
     title: String, imageUrl: String?, sourceUrl: String?, isEditing: Boolean,
     onTitleChange: (String) -> Unit, onImageUrlChange: (String?) -> Unit,
-    onBack: () -> Unit, onShare: () -> Unit, onShareImage: () -> Unit, onEditStart: () -> Unit,
+    onBack: () -> Unit, onShare: () -> Unit, onShareImage: () -> Unit,
+    onEditStart: () -> Unit, onCookingModeStart: () -> Unit,
     onOpenSource: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -661,6 +789,7 @@ fun HeaderSection(
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.back), tint = Color.White) } },
             actions = {
                 if (!isEditing) {
+                    IconButton(onClick = onCookingModeStart) { Icon(Icons.Default.RestaurantMenu, "Cooking Mode", tint = Color.White) }
                     IconButton(onClick = onEditStart) { Icon(Icons.Default.Edit, "Edit Recipe", tint = Color.White) }
                     if (sourceUrl?.startsWith("http", ignoreCase = true) == true) IconButton(onClick = { onOpenSource(sourceUrl) }) { Icon(Icons.Default.OpenInBrowser, "Open URL", tint = Color.White) }
                     IconButton(onClick = { showShareOptions = true }) { Icon(Icons.Default.Share, stringResource(id = R.string.share_recipe), tint = Color.White) }

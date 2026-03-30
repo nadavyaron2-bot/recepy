@@ -5,9 +5,9 @@
     <string name="url_hint">הדבק/י כאן קישור למתכון</string>
     <string name="extract_recipe">חלץ מתכון</string>
     <string name="paste_recipe_text">הדבק מתכון טקסט</string>
-    <string name="paste_recipe_placeholder">הדבק כאן טקסט מתכון...</string>
+    <string name="paste_recipe_placeholder">הדבק כאן טקסט מתכון…</string>
     <string name="extract_recipe_from_text">חלץ מתכון מטקסט</string>
-    <string name="loading_recipe">מחלץ מתכון...</string>
+    <string name="loading_recipe">מחלץ מתכון…</string>
     <string name="saved_recipes">מתכונים שמורים</string>
     <string name="search_saved_recipes">חיפוש מתכונים שמורים</string>
     <string name="no_saved_recipes">עדיין אין מתכונים שמורים</string>
@@ -15,7 +15,7 @@
     <string name="ingredients_title">מצרכים</string>
     <string name="instructions_title">הוראות הכנה</string>
     <string name="save_recipe">שמור</string>
-    <string name="saving">שומר...</string>
+    <string name="saving">שומר…</string>
     <string name="recipe_saved">המתכון נשמר בהצלחה</string>
     <string name="recipe_deleted">המתכון נמחק</string>
     <string name="delete_recipe_title">למחוק מתכון?</string>
@@ -56,8 +56,18 @@
     <string name="delete_by_source_title">בחר מקורות למחיקה</string>
     <string name="delete_by_source_message">סמן את המקורות שמתכוניהם יימחקו. פעולה זו אינה הפיכה.</string>
     <string name="select_all">בחר הכל</string>
+    <string name="export_import_title">שיתוף וגיבוי ספריה</string>
+    <string name="export_recipes_title">שתף את כל המתכונים</string>
+    <string name="export_recipes_subtitle">ייצא את כל הספרייה לקובץ JSON</string>
+    <string name="export_button">ייצא</string>
+    <string name="import_recipes_title">ייבא מתכונים מקובץ</string>
+    <string name="import_recipes_subtitle">הוסף מתכונים חדשים מקובץ JSON</string>
+    <string name="import_button">ייבא</string>
+    <string name="import_share_label">מתכוניה - הוספת מתכונים</string>
     <string name="shortcut_add_recipe">הוסף מתכון</string>
     <string name="shortcut_add_recipe_long">הוספת מתכון חדש</string>
     <string name="shortcut_shopping_list">רשימת קניות</string>
     <string name="shortcut_shopping_list_long">צפייה ברשימת הקניות</string>
+    <string name="search_by_ingredients">חיפוש לפי מצרכים</string>
+    <string name="cooking_mode">מצב בישול</string>
 </resources>

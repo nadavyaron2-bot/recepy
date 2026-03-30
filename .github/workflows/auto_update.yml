@@ -34,10 +34,18 @@ jobs:
           echo "GRADLEW_PATH=$GRADLEW_PATH" >> $GITHUB_ENV
           echo "PROJECT_ROOT=$(dirname "$GRADLEW_PATH")" >> $GITHUB_ENV
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > debug.keystore
+
       - name: Build APK
         run: |
           cd ${{ env.PROJECT_ROOT }}
-          ./gradlew :app:assembleDebug --no-daemon
+          ./gradlew :app:assembleRelease --no-daemon
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Update Version and Files
         run: |

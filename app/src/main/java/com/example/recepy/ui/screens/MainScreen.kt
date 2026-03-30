@@ -2,16 +2,29 @@
 
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.edit
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -44,6 +57,12 @@ import coil.compose.AsyncImage
 import com.example.recepy.R
 import com.example.recepy.data.repository.Recipe
 import com.example.recepy.viewmodel.MainViewModel
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -64,8 +83,8 @@ fun MainScreen(
     sortByAlpha: Boolean,
     onSortToggle: () -> Unit,
     snackbarHostState: SnackbarHostState,
-    viewModel: MainViewModel = viewModel(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: MainViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) {
         viewModel.loadSeedRecipes()
@@ -87,10 +106,11 @@ fun MainScreen(
     val selectedTagFilters by viewModel.selectedTagFilters.collectAsState()
     val predefinedTags = viewModel.predefinedTags
     val lastCookedRecipe by viewModel.lastCookedRecipe.collectAsState()
+    val searchByIngredients by viewModel.searchByIngredients.collectAsState()
     val shoppingListItems by viewModel.shoppingList.collectAsState()
-
     val context = LocalContext.current
-    val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+
+    val prefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
     var useManualInput by remember { mutableStateOf(prefs.getBoolean("use_manual_input", true)) }
 
     Scaffold(
@@ -174,11 +194,20 @@ fun MainScreen(
                             .weight(1f)
                             .onFocusChanged { isSearchFocused = it.isFocused },
                         singleLine = true,
-                        placeholder = { Text(text = stringResource(id = R.string.search_saved_recipes)) },
+                        placeholder = { Text(text = if (searchByIngredients) stringResource(id = R.string.search_by_ingredients) else stringResource(id = R.string.search_saved_recipes)) },
                         leadingIcon = { Icon(Icons.Default.Search, null) },
                         trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { onSearchQueryChanged("") }) { Icon(Icons.Default.Clear, null) }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { onSearchQueryChanged("") }) { Icon(Icons.Default.Clear, null) }
+                                }
+                                IconButton(onClick = { viewModel.toggleSearchMode() }) {
+                                    Icon(
+                                        imageVector = if (searchByIngredients) Icons.Default.Kitchen else Icons.AutoMirrored.Filled.MenuBook,
+                                        contentDescription = stringResource(id = R.string.search_by_ingredients),
+                                        tint = if (searchByIngredients) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     )
@@ -452,9 +481,29 @@ fun MainScreen(
                 Text("הוספת מתכון", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val manualButtonModifier = Modifier.weight(1f)
-                    if (useManualInput) Button(onClick = { }, modifier = manualButtonModifier) { Text("הזנה ידנית") } else OutlinedButton(onClick = { useManualInput = true; prefs.edit().putBoolean("use_manual_input", true).apply() }, modifier = manualButtonModifier) { Text("הזנה ידנית") }
+                    if (useManualInput) {
+                        Button(onClick = { }, modifier = manualButtonModifier) { Text("הזנה ידנית") }
+                    } else {
+                        OutlinedButton(
+                            onClick = {
+                                useManualInput = true
+                                prefs.edit { putBoolean("use_manual_input", true) }
+                            },
+                            modifier = manualButtonModifier
+                        ) { Text("הזנה ידנית") }
+                    }
                     val pasteButtonModifier = Modifier.weight(1f)
-                    if (!useManualInput) Button(onClick = { }, modifier = pasteButtonModifier) { Text("הדבקת טקסט") } else OutlinedButton(onClick = { useManualInput = false; prefs.edit().putBoolean("use_manual_input", false).apply() }, modifier = pasteButtonModifier) { Text("הדבקת טקסט") }
+                    if (!useManualInput) {
+                        Button(onClick = { }, modifier = pasteButtonModifier) { Text("הדבקת טקסט") }
+                    } else {
+                        OutlinedButton(
+                            onClick = {
+                                useManualInput = false
+                                prefs.edit { putBoolean("use_manual_input", false) }
+                            },
+                            modifier = pasteButtonModifier
+                        ) { Text("הדבקת טקסט") }
+                    }
                 }
                 if (manualImageUrl != null) {
                     Box(modifier = Modifier.fillMaxWidth().height(150.dp)) {
