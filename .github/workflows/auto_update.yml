@@ -42,14 +42,16 @@ jobs:
       - name: Update Version and Files
         run: |
           APP_GRADLE=$(find . -name build.gradle | grep "/app/" | head -n 1)
+          # שליפת versionCode ו-versionName מהקוד
           VERSION_CODE=$(grep "versionCode" "$APP_GRADLE" | head -n 1 | awk '{print $NF}' | tr -d '()= \r\n')
+          VERSION_NAME=$(grep "versionName" "$APP_GRADLE" | head -n 1 | awk '{print $NF}' | tr -d '\"()= \r\n')
           
           mkdir -p update
           find . -name "*.apk" -not -path "*/update/*" -exec cp {} update/app-release.apk \;
           
           echo "{
             \"versionCode\": $VERSION_CODE,
-            \"versionName\": \"1.0.4-auto\",
+            \"versionName\": \"$VERSION_NAME\",
             \"downloadUrl\": \"https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/master/update/app-release.apk\"
           }" > update/version.json
 
