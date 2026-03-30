@@ -89,6 +89,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _showAddDialog.value = show
     }
 
+    private val _isImporting = MutableStateFlow(false)
+    val isImporting: StateFlow<Boolean> = _isImporting.asStateFlow()
+
+    private val _importMessage = MutableStateFlow<String?>(null)
+    val importMessage: StateFlow<String?> = _importMessage.asStateFlow()
+
+    private val _systemUpdateMessage = MutableStateFlow<String?>(null)
+    val systemUpdateMessage: StateFlow<String?> = _systemUpdateMessage.asStateFlow()
+
+    private val _appUpdateMessage = MutableStateFlow<String?>(null)
+    val appUpdateMessage: StateFlow<String?> = _appUpdateMessage.asStateFlow()
+
+    private val _showUpdateDialog = MutableStateFlow(false)
+    val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
+
+    private val _updateDownloadUrl = MutableStateFlow<String?>(null)
+    val updateDownloadUrl: StateFlow<String?> = _updateDownloadUrl.asStateFlow()
+
     private val updateImportPrefs by lazy {
         application.getSharedPreferences("bundled_recipe_import", Context.MODE_PRIVATE)
     }
@@ -330,24 +348,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun getString(resId: Int): String { return getApplication<Application>().getString(resId) }
     private fun extractHttpUrl(text: String): String? { return Regex("""https?://[^\s]+""", RegexOption.IGNORE_CASE).find(text)?.value }
     private companion object { const val KEY_LAST_IMPORTED_UPDATE_TIME = "key_last_imported_update_time" }
-
-    private val _isImporting = MutableStateFlow(false)
-    val isImporting: StateFlow<Boolean> = _isImporting.asStateFlow()
-
-    private val _importMessage = MutableStateFlow<String?>(null)
-    val importMessage: StateFlow<String?> = _importMessage.asStateFlow()
-
-    private val _systemUpdateMessage = MutableStateFlow<String?>(null)
-    val systemUpdateMessage: StateFlow<String?> = _systemUpdateMessage.asStateFlow()
-
-    private val _appUpdateMessage = MutableStateFlow<String?>(null)
-    val appUpdateMessage: StateFlow<String?> = _appUpdateMessage.asStateFlow()
-
-    private val _showUpdateDialog = MutableStateFlow(false)
-    val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
-
-    private val _updateDownloadUrl = MutableStateFlow<String?>(null)
-    val updateDownloadUrl: StateFlow<String?> = _updateDownloadUrl.asStateFlow()
 
     fun checkForAppUpdate(context: Context) {
         viewModelScope.launch {
