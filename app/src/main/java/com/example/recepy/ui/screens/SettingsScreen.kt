@@ -1,18 +1,23 @@
 ﻿package com.example.recepy.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -27,6 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,22 +45,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import com.example.recepy.R
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.example.recepy.R
 import com.example.recepy.data.preferences.AppTheme
 import com.example.recepy.data.preferences.ThemeMode
 import com.example.recepy.ui.theme.BluePrimary
@@ -61,16 +58,12 @@ import com.example.recepy.ui.theme.GreenPrimary
 import com.example.recepy.ui.theme.OrangePrimary
 import com.example.recepy.ui.theme.PinkPrimary
 import com.example.recepy.ui.theme.PurplePrimary
-import java.net.URI
-
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 
 // מחלץ domain נקי מ-URL (ללא www. וללא path)
 fun extractDomain(url: String): String {
     return try {
-        URI(url).host?.removePrefix("www.") ?: url
-    } catch (e: Exception) {
+        java.net.URI(url).host?.removePrefix("www.") ?: url
+    } catch (_: Exception) {
         url
     }
 }
@@ -78,6 +71,7 @@ fun extractDomain(url: String): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    modifier: Modifier = Modifier,
     themeMode: ThemeMode,
     onThemeSelected: (ThemeMode) -> Unit,
     appTheme: AppTheme,
@@ -85,7 +79,6 @@ fun SettingsScreen(
     onBack: () -> Unit,
     keepScreenOn: Boolean,
     onKeepScreenOnToggle: () -> Unit,
-    // domains = Map<domain, recipeCount>  למשל {"mako.co.il" -> 5, "foody.co.il" -> 3}
     domainCounts: Map<String, Int>,
     onDeleteByDomains: (Set<String>) -> Unit,
     onExportAll: () -> Unit = {},
@@ -95,8 +88,7 @@ fun SettingsScreen(
     appUpdateMessage: String? = null,
     onCheckForUpdates: () -> Unit = {},
     onCheckAppUpdate: () -> Unit = {},
-    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    modifier: Modifier = Modifier
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     var showDeleteDialog  by remember { mutableStateOf(false) }
     var selectedDomains   by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -465,7 +457,7 @@ fun SettingsScreen(
                     onClick = onCheckForUpdates,
                     enabled = !isImporting
                 ) {
-                    Text("בדוק עדכון")
+                    Text(stringResource(R.string.check_for_updates))
                 }
             }
 
@@ -500,7 +492,7 @@ fun SettingsScreen(
                 OutlinedButton(
                     onClick = onCheckAppUpdate
                 ) {
-                    Text("בדוק")
+                    Text(stringResource(R.string.check_for_updates))
                 }
             }
 

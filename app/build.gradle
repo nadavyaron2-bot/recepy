@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
@@ -12,8 +13,8 @@ android {
         applicationId "com.example.recepy"
         minSdk 26
         targetSdk 36
-        versionCode 9
-        versionName "1.0.7"
+        versionCode 11
+        versionName "1.0.9"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -26,14 +27,12 @@ android {
             keyPassword "android"
         }
         release {
-            // האם אנחנו רצים ב-GitHub Actions?
             if (System.getenv("GITHUB_ACTIONS") == "true") {
                 storeFile file("../debug.keystore")
                 storePassword System.getenv("KEYSTORE_PASSWORD")
                 keyAlias System.getenv("KEY_ALIAS")
                 keyPassword System.getenv("KEY_PASSWORD")
             } else {
-                // במחשב המקומי נשתמש באותה חתימה
                 storeFile file("debug.keystore")
                 storePassword "android"
                 keyAlias "androiddebugkey"
@@ -56,14 +55,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
     buildFeatures {
         compose true
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 
@@ -81,6 +77,7 @@ dependencies {
     implementation libs.androidx.compose.material.icons.extended
 
     implementation libs.jsoup
+    // Room
     implementation libs.androidx.room.runtime
     implementation libs.androidx.room.ktx
     ksp libs.androidx.room.compiler
@@ -95,7 +92,6 @@ dependencies {
     androidTestImplementation libs.androidx.compose.ui.test.junit4
     debugImplementation libs.androidx.compose.ui.tooling
     debugImplementation libs.androidx.compose.ui.test.manifest
-    // Jetpack Glance for App Widgets
     implementation("androidx.glance:glance-appwidget:1.1.1")
     implementation("androidx.glance:glance-material3:1.1.1")
     implementation("androidx.core:core-splashscreen:1.2.0")

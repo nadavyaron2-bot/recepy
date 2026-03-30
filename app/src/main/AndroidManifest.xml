@@ -17,7 +17,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@drawable/app_icon_foreground"
-        android:label="מתכוניה"
+        android:label="@string/app_name"
         android:roundIcon="@drawable/app_icon_foreground"
         android:supportsRtl="true"
         android:theme="@style/Theme.Recepy">
@@ -25,7 +25,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="מתכוניה"
+            android:label="@string/app_name"
             android:theme="@style/Theme.App.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -95,11 +95,6 @@
                 android:resource="@xml/recepy_widget_info" />
         </receiver>
 
-        <receiver android:name=".widget.WidgetClickReceiver" android:exported="false">
-            <intent-filter>
-                <action android:name="TOGGLE_ITEM" />
-            </intent-filter>
-        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"

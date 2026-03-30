@@ -1,12 +1,7 @@
 ﻿package com.example.recepy
 
-import android.Manifest
-import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,23 +9,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ShoppingCart // אפשר לשנות לאייקון אחר
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -39,14 +21,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
+import androidx.core.content.edit
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
@@ -64,7 +41,6 @@ import com.example.recepy.viewmodel.MainViewModel
 import com.example.recepy.viewmodel.RecipeDetailViewModel
 import com.example.recepy.viewmodel.RecipeUiState
 import com.example.recepy.viewmodel.SettingsViewModel
-import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
@@ -83,20 +59,8 @@ class MainActivity : ComponentActivity() {
         keepScreenOn.value = prefs.getBoolean("keep_screen_on", true)
         enableEdgeToEdge()
 
-        if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivity(intent)
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                101
-            )
+        if (keepScreenOn.value) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
 
         handleAppIntent(intent)
@@ -146,7 +110,7 @@ class MainActivity : ComponentActivity() {
                             onKeepScreenOnToggle = {
                                 val newValue = !keepScreenOn.value
                                 keepScreenOn.value = newValue
-                                prefs.edit().putBoolean("keep_screen_on", newValue).apply()
+                                prefs.edit { putBoolean("keep_screen_on", newValue) }
                             }
                         )
                     }
@@ -170,7 +134,7 @@ class MainActivity : ComponentActivity() {
                     intent.getParcelableExtra(Intent.EXTRA_STREAM, android.net.Uri::class.java)
                 } else {
                     @Suppress("DEPRECATION")
-                    intent.getParcelableExtra(Intent.EXTRA_STREAM)
+                    intent.getParcelableExtra(Intent.EXTRA_STREAM) as? android.net.Uri
                 }
                 uri?.let { mainViewModel.importRecipesFromUri(this, it) }
             }

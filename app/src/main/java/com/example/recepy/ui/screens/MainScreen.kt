@@ -2,10 +2,20 @@
 
 import android.content.Context
 import android.content.Intent
-import androidx.core.content.edit
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +44,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,24 +63,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.recepy.R
 import com.example.recepy.data.repository.Recipe
 import com.example.recepy.viewmodel.MainViewModel
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -135,7 +134,10 @@ fun MainScreen(
                             BadgedBox(
                                 badge = { if (shoppingListItems.isNotEmpty()) Badge { Text(shoppingListItems.size.toString()) } }
                             ) {
-                                Icon(Icons.Default.ShoppingCart, contentDescription = "רשימת קניות")
+                                Icon(
+                                    imageVector = Icons.Default.ShoppingCart,
+                                    contentDescription = "רשימת קניות"
+                                )
                             }
                         }
                         IconButton(onClick = onSettingsClick) {
@@ -360,10 +362,6 @@ fun MainScreen(
                     val uncheckedGroups = shoppingListItems.filter { !it.isChecked }.groupBy { it.recipeName ?: "מצרכים כלליים" }
                     val checkedGroups = shoppingListItems.filter { it.isChecked }.groupBy { it.recipeName ?: "מצרכים כלליים" }
 
-                    // אל תשכח להוסיף את הייבוא (Imports) האלה למעלה בקובץ:
-// import androidx.compose.animation.core.tween
-// import androidx.compose.animation.core.FastOutSlowInEasing
-
                     LazyColumn(modifier = Modifier.fillMaxHeight(0.8f)) {
 
                         // קודם מציגים את כל המצרכים שלא סומנו (לפי מתכונים)
@@ -376,7 +374,6 @@ fun MainScreen(
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier
                                         .padding(top = 16.dp, bottom = 4.dp)
-                                        // הוספתי פה את האנימציה לכותרת
                                         .animateItem(
                                             placementSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
                                         )
@@ -387,7 +384,6 @@ fun MainScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        // ⭐️ כאן שדרגנו את האנימציה של הפריט! ⭐️
                                         .animateItem(
                                             placementSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
                                         )
@@ -443,7 +439,6 @@ fun MainScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            // ⭐️ וגם כאן שדרגנו את האנימציה לפריט שסומן! ⭐️
                                             .animateItem(
                                                 placementSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
                                             )

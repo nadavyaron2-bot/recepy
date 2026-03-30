@@ -33,7 +33,7 @@ fun SplashScreen(onNavigateToMain: () -> Unit) {
         animationSpec = tween(durationMillis = 1000)
     )
 
-    LaunchedEffect(key1 = true) {
+    LaunchedEffect(Unit) {
         startAnimation = true
         delay(800) // Reduced delay for faster cold start
         onNavigateToMain() // הקריאה למעבר מסך
@@ -50,7 +50,6 @@ fun SplashScreen(onNavigateToMain: () -> Unit) {
                 .alpha(alphaAnim)
                 .scale(scaleAnim)
         ) {
-            // אפשר להחליף את זה ללוגו אמיתי (Image) אם יש לך
             Icon(
                 imageVector = Icons.Default.ShoppingCart,
                 contentDescription = "לוגו",
@@ -59,7 +58,7 @@ fun SplashScreen(onNavigateToMain: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "המתכונים שלי", // שנה לשם האפליקציה שלך
+                text = "מתכוניה",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary
             )
