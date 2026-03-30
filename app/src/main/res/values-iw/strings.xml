@@ -70,4 +70,8 @@
     <string name="shortcut_shopping_list_long">צפייה ברשימת הקניות</string>
     <string name="search_by_ingredients">חיפוש לפי מצרכים</string>
     <string name="cooking_mode">מצב בישול</string>
+    <string name="export_success">הספרייה יוצאה בהצלחה</string>
+    <string name="import_success">יובאו %1$d מתכונים בהצלחה</string>
+    <string name="update_available">עדכון זמין</string>
+    <string name="check_for_updates">בדוק עדכונים</string>
 </resources>

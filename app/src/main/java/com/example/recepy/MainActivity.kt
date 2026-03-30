@@ -58,6 +58,7 @@ import com.example.recepy.data.preferences.ThemeMode
 import com.example.recepy.ui.screens.MainScreen
 import com.example.recepy.ui.screens.RecipeDetailScreen
 import com.example.recepy.ui.screens.SettingsScreen
+import com.example.recepy.ui.screens.SplashScreen
 import com.example.recepy.ui.theme.RecepyTheme
 import com.example.recepy.viewmodel.MainViewModel
 import com.example.recepy.viewmodel.RecipeDetailViewModel
@@ -128,7 +129,7 @@ class MainActivity : ComponentActivity() {
 
                     // בודקים מה להציג - את מסך הפתיחה או את האפליקציה המלאה
                     if (showSplash) {
-                        ComposeSplashScreen(onNavigateToMain = { showSplash = false })
+                        SplashScreen(onNavigateToMain = { showSplash = false })
                     } else {
                         if (showUpdateDialog && updateDownloadUrl != null) {
                             UpdateDialog(
@@ -193,56 +194,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-// ==========================================
-// מסך הפתיחה של Compose
-// ==========================================
-@Composable
-fun ComposeSplashScreen(onNavigateToMain: () -> Unit) {
-    var startAnimation by remember { mutableStateOf(false) }
-
-    val alphaAnim by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 1000)
-    )
-
-    val scaleAnim by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0.5f,
-        animationSpec = tween(durationMillis = 1000)
-    )
-
-    LaunchedEffect(key1 = true) {
-        startAnimation = true
-        delay(800) // Reduced delay for faster cold start
-        onNavigateToMain()
-    }
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .alpha(alphaAnim)
-                .scale(scaleAnim)
-        ) {
-            Icon(
-                imageVector = Icons.Default.ShoppingCart, // אפשר לשנות ללוגו שלך
-                contentDescription = "לוגו האפליקציה",
-                modifier = Modifier.size(100.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "המתכונים שלי", // שם האפליקציה
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-}
-
 
 @Composable
 fun UpdateDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {

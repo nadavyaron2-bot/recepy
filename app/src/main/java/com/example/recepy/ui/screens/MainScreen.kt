@@ -57,11 +57,18 @@ import coil.compose.AsyncImage
 import com.example.recepy.R
 import com.example.recepy.data.repository.Recipe
 import com.example.recepy.viewmodel.MainViewModel
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -116,7 +123,11 @@ fun MainScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            if (!compactSearchMode) {
+            AnimatedVisibility(
+                visible = !compactSearchMode,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+            ) {
                 CenterAlignedTopAppBar(
                     title = { Text(text = stringResource(id = R.string.top_bar_title)) },
                     actions = {
@@ -130,7 +141,6 @@ fun MainScreen(
                         IconButton(onClick = onSettingsClick) {
                             Icon(Icons.Default.Settings, contentDescription = stringResource(id = R.string.settings_content_desc))
                         }
-
                     }
                 )
             }
@@ -194,7 +204,17 @@ fun MainScreen(
                             .weight(1f)
                             .onFocusChanged { isSearchFocused = it.isFocused },
                         singleLine = true,
-                        placeholder = { Text(text = if (searchByIngredients) stringResource(id = R.string.search_by_ingredients) else stringResource(id = R.string.search_saved_recipes)) },
+                        placeholder = {
+                            AnimatedContent(
+                                targetState = searchByIngredients,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(220, delayMillis = 90)) togetherWith
+                                            fadeOut(animationSpec = tween(90))
+                                }, label = "SearchPlaceholder"
+                            ) { targetSearchByIngredients ->
+                                Text(text = if (targetSearchByIngredients) stringResource(id = R.string.search_by_ingredients) else stringResource(id = R.string.search_saved_recipes))
+                            }
+                        },
                         leadingIcon = { Icon(Icons.Default.Search, null) },
                         trailingIcon = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -202,11 +222,18 @@ fun MainScreen(
                                     IconButton(onClick = { onSearchQueryChanged("") }) { Icon(Icons.Default.Clear, null) }
                                 }
                                 IconButton(onClick = { viewModel.toggleSearchMode() }) {
-                                    Icon(
-                                        imageVector = if (searchByIngredients) Icons.Default.Kitchen else Icons.AutoMirrored.Filled.MenuBook,
-                                        contentDescription = stringResource(id = R.string.search_by_ingredients),
-                                        tint = if (searchByIngredients) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    AnimatedContent(
+                                        targetState = searchByIngredients,
+                                        transitionSpec = {
+                                            (fadeIn() + scaleIn()).togetherWith(fadeOut() + scaleOut())
+                                        }, label = "SearchModeIcon"
+                                    ) { targetSearchByIngredients ->
+                                        Icon(
+                                            imageVector = if (targetSearchByIngredients) Icons.Default.Kitchen else Icons.AutoMirrored.Filled.MenuBook,
+                                            contentDescription = stringResource(id = R.string.search_by_ingredients),
+                                            tint = if (targetSearchByIngredients) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }

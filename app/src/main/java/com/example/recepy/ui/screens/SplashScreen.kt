@@ -33,10 +33,9 @@ fun SplashScreen(onNavigateToMain: () -> Unit) {
         animationSpec = tween(durationMillis = 1000)
     )
 
-    // הטיימר: מפעיל את האנימציה ומחכה לפני המעבר
     LaunchedEffect(key1 = true) {
         startAnimation = true
-        delay(1500) // זמן ההמתנה במסך (1.5 שניות)
+        delay(800) // Reduced delay for faster cold start
         onNavigateToMain() // הקריאה למעבר מסך
     }
 

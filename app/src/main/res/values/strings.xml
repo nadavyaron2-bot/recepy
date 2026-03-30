@@ -64,10 +64,14 @@
     <string name="import_button">ייבא</string>
     <string name="import_share_label">מתכוניה - הוספת מתכונים</string>
     <string name="select_all">בחר הכל</string>
-    <string name="shortcut_add_recipe">Add Recipe</string>
-    <string name="shortcut_add_recipe_long">Add a new recipe</string>
-    <string name="shortcut_shopping_list">Shopping List</string>
-    <string name="shortcut_shopping_list_long">View your shopping list</string>
-    <string name="search_by_ingredients">Search by Ingredients</string>
-    <string name="cooking_mode">Cooking Mode</string>
+    <string name="shortcut_add_recipe">הוסף מתכון</string>
+    <string name="shortcut_add_recipe_long">הוסף מתכון חדש</string>
+    <string name="shortcut_shopping_list">רשימת קניות</string>
+    <string name="shortcut_shopping_list_long">צפה ברשימת הקניות שלך</string>
+    <string name="search_by_ingredients">חיפוש לפי מצרכים</string>
+    <string name="cooking_mode">מצב בישול</string>
+    <string name="export_success">הספרייה יוצאה בהצלחה</string>
+    <string name="import_success">יובאו %1$d מתכונים בהצלחה</string>
+    <string name="update_available">עדכון זמין</string>
+    <string name="check_for_updates">בדוק עדכונים</string>
 </resources>
