@@ -16,43 +16,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug - List Files
-        run: ls -R
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
+      - name: Find and Prepare gradlew
         run: |
-          if [ -f "gradlew" ]; then
-            chmod +x gradlew
-          elif [ -f "recepy/gradlew" ]; then
-            cd recepy && chmod +x gradlew
-          else
-            echo "gradlew not found!" && exit 1
+          GRADLEW_PATH=$(find . -name gradlew | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: gradlew not found in the repository!"
+            exit 1
           fi
+          chmod +x "$GRADLEW_PATH"
+          echo "GRADLEW_PATH=$GRADLEW_PATH" >> $GITHUB_ENV
+          echo "PROJECT_ROOT=$(dirname "$GRADLEW_PATH")" >> $GITHUB_ENV
 
       - name: Build APK
         run: |
-          if [ -f "gradlew" ]; then
-            ./gradlew assembleDebug
-          else
-            cd recepy && ./gradlew assembleDebug
-          fi
+          cd ${{ env.PROJECT_ROOT }}
+          ./gradlew :app:assembleDebug
 
       - name: Update Version and Files
         run: |
-          # ניסיון למצוא את הקובץ במיקום הראשי או בתת תיקייה
-          APP_DIR="app"
-          if [ ! -d "$APP_DIR" ]; then APP_DIR="recepy/app"; fi
-          
-          VERSION_CODE=$(grep "versionCode" $APP_DIR/build.gradle | head -n 1 | awk '{print $2}' | tr -d '()= \r\n')
+          # מוצא את קובץ ה-build.gradle של ה-app
+          APP_GRADLE=$(find . -name build.gradle | grep "/app/" | head -n 1)
+          VERSION_CODE=$(grep "versionCode" "$APP_GRADLE" | head -n 1 | awk '{print $NF}' | tr -d '()= \r\n')
           
           mkdir -p update
-          cp $APP_DIR/build/outputs/apk/debug/*.apk update/app-release.apk
+          # מוצא את ה-APK שנוצר ומעתיק אותו
+          find . -name "*.apk" -not -path "*/update/*" -exec cp {} update/app-release.apk \;
           
           echo "{
             \"versionCode\": $VERSION_CODE,
