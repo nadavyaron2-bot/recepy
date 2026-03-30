@@ -134,7 +134,9 @@ class RecipeRepository(
     private val importMutex = Mutex()
 
     suspend fun exportAllRecipesJson(): String {
-        val recipes = recipeDao.getAllRecipesOnce().map(::entityToRecipe)
+        val recipes = recipeDao.getAllRecipesOnce()
+            .map(::entityToRecipe)
+            .filter { it.sourceUrl != "מתכון מערכת" }
         return gson.toJson(recipes)
     }
 

@@ -123,6 +123,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         importBundledRecipesOnAppUpdate()
         syncWithRemoteSystemRecipes()
         cleanupOldUpdates()
+        checkForAppUpdate(application) // בדיקה אוטומטית בכל פתיחה
     }
 
     private fun cleanupOldUpdates() {
@@ -310,7 +311,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun checkForAppUpdate(context: Context) {
         viewModelScope.launch {
-            _appUpdateMessage.value = "בודק..."
             val versionUrl = "https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/master/update/version.json"
             
             runCatching {
@@ -337,13 +337,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (remoteVersionCode > currentVersionCode && !downloadUrl.isNullOrBlank()) {
                         _updateDownloadUrl.value = downloadUrl
                         _showUpdateDialog.value = true
-                        _appUpdateMessage.value = "קיימת גרסה חדשה!"
-                    } else {
-                        _appUpdateMessage.value = "האפליקציה מעודכנת"
                     }
                 }
-            }.onFailure {
-                _appUpdateMessage.value = "שגיאה בבדיקת עדכון"
             }
         }
     }

@@ -187,25 +187,35 @@ class RecipeParser {
 
     private fun extractListNearKeywords(document: Document, keywords: List<String>): List<String> {
         val normalizedKeywords = keywords.map { it.lowercase() }
-        val headings = document.select("h1,h2,h3,h4,h5,h6,strong,b,p,span")
+        
+        // Strategy 1: Find by section/article containing the keyword
+        val containers = document.select("section,article,div[class*=recipe],div[id*=recipe]")
+            .filter { hasKeyword(it.text().take(300), normalizedKeywords) }
+        
+        for (container in containers) {
+            val items = container.select("li, p").map { it.text().trim() }
+                .filter { it.length > 2 && !hasKeyword(it, normalizedKeywords) }
+            if (items.size >= 3) return normalize(items)
+        }
+
+        // Strategy 2: Find headings and look for the next list/paragraph block
+        val headings = document.select("h1,h2,h3,h4,h5,h6,strong,b,p[class*=title],p[class*=header]")
             .filter { hasKeyword(it.text(), normalizedKeywords) }
 
         for (heading in headings) {
-            val list = when {
-                heading.tagName() == "ul" || heading.tagName() == "ol" -> heading
-                heading.nextElementSibling()?.tagName() == "ul" || heading.nextElementSibling()?.tagName() == "ol" -> heading.nextElementSibling()
-                else -> heading.parent()?.selectFirst("ul,ol")
+            var sibling = heading.nextElementSibling()
+            // Look ahead up to 3 siblings for a list or group of paragraphs
+            repeat(3) {
+                if (sibling != null) {
+                    val items = sibling!!.select("li").map { it.text() }
+                        .ifEmpty { 
+                            // If no <li>, check if it's a div containing many paragraphs
+                            sibling!!.select("p").map { it.text() }.filter { it.length > 5 }
+                        }
+                    if (items.size >= 2) return normalize(items)
+                    sibling = sibling!!.nextElementSibling()
+                }
             }
-            val items = normalize(list?.select("li")?.map { it.text() }.orEmpty())
-            if (items.size >= 2) return items
-        }
-
-        val sections = document.select("section,article,div")
-            .filter { hasKeyword("${it.id()} ${it.className()} ${it.text().take(220)}", normalizedKeywords) }
-
-        for (section in sections) {
-            val items = normalize(section.select("li").map { it.text() })
-            if (items.size >= 2) return items
         }
         return emptyList()
     }
@@ -342,24 +352,17 @@ class RecipeParser {
     }
 
     private companion object {
-        val INGREDIENT_KEYWORDS = listOf("ingredients", "ingredient", "מצרכים")
+        val INGREDIENT_KEYWORDS = listOf(
+            "ingredients", "ingredient", "מצרכים", "רכיבים", "מה צריך", "החומרים", "המרכיבים"
+        )
         val INSTRUCTION_KEYWORDS = listOf(
-            "instructions",
-            "instruction",
-            "directions",
-            "method",
-            "אופן הכנה",
-            "הוראות הכנה",
-            "שלבי הכנה"
+            "instructions", "instruction", "directions", "method", "preparation",
+            "אופן הכנה", "הוראות הכנה", "שלבי הכנה", "איך מכינים", "הכנה", "תהליך ההכנה"
         )
-        val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "ingredients")
+        val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients")
         val TEXT_INSTRUCTION_HEADERS = listOf(
-            "הוראות",
-            "אופן הכנה",
-            "הכנה",
-            "instructions",
-            "directions"
+            "הוראות", "אופן הכנה", "הכנה", "איך מכינים", "instructions", "directions"
         )
-        val TITLE_KEYWORDS = listOf("שם", "title", "recipe")
+        val TITLE_KEYWORDS = listOf("שם", "title", "recipe", "מתכון")
     }
 }
