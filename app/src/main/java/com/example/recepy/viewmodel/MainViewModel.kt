@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+//import org.jsoup.nodes.Document
 
 sealed interface RecipeUiState {
     data object Idle : RecipeUiState
@@ -71,23 +72,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _suggestMakoSearch = MutableStateFlow<String?>(null)
     val suggestMakoSearch: StateFlow<String?> = _suggestMakoSearch.asStateFlow()
 
-    private val _suggestedRecipesForDev = MutableStateFlow<List<String>>(emptyList())
-    val suggestedRecipesForDev: StateFlow<List<String>> = _suggestedRecipesForDev.asStateFlow()
-
-    private val _reportedBugs = MutableStateFlow<List<String>>(emptyList())
-    val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
-
     fun toggleSearchMode() {
         _searchByIngredients.value = !_searchByIngredients.value
     }
 
+    private val _reportedBugs = MutableStateFlow<List<String>>(
+        prefs.getStringSet("reported_bugs", emptySet())?.toList() ?: emptyList()
+    )
+    val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
+
     fun reportBug(bug: String) {
-        _reportedBugs.value = _reportedBugs.value + bug
+        val newList = _reportedBugs.value + bug
+        _reportedBugs.value = newList
+        prefs.edit { putStringSet("reported_bugs", newList.toSet()) }
     }
+
+    private val _suggestedRecipesForDev = MutableStateFlow<List<String>>(
+        prefs.getStringSet("suggested_recipes", emptySet())?.toList() ?: emptyList()
+    )
+    val suggestedRecipesForDev: StateFlow<List<String>> = _suggestedRecipesForDev.asStateFlow()
 
     fun addSuggestedRecipe(name: String) {
         if (!_suggestedRecipesForDev.value.contains(name)) {
-            _suggestedRecipesForDev.value = _suggestedRecipesForDev.value + name
+            val newList = _suggestedRecipesForDev.value + name
+            _suggestedRecipesForDev.value = newList
+            prefs.edit { putStringSet("suggested_recipes", newList.toSet()) }
         }
     }
 
@@ -412,7 +421,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _urlInput.value = ""
         _recipeUiState.value = RecipeUiState.Loading
         viewModelScope.launch {
-            runCatching { withContext(Dispatchers.IO) { repository.extractRecipeFromUrl(input) } }
+            runCatching { 
+                withContext(Dispatchers.IO) { 
+                    if (input.startsWith("http")) {
+                        repository.extractRecipeFromUrl(input)
+                    } else {
+                        // Mako Search Logic
+                        val searchUrl = "https://www.google.com/search?q=site:mako.co.il+מתכון+$input"
+                        val doc = withContext(Dispatchers.IO) {
+                            org.jsoup.Jsoup.connect(searchUrl)
+                                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                                .get()
+                        }
+                        val link = doc.select("a")
+                            .map { it.attr("href") }
+                            .firstOrNull { it.contains("mako.co.il/food-recipes/recipes/") }
+                            ?.let { 
+                                if (it.startsWith("/url?q=")) it.substringAfter("/url?q=").substringBefore("&") else it
+                            } ?: throw Exception("לא נמצא מתכון במאקו לחיפוש זה")
+                        
+                        repository.extractRecipeFromUrl(link)
+                    }
+                } 
+            }
                 .onSuccess { recipe -> _selectedRecipe.value = recipe; _recipeUiState.value = RecipeUiState.Success(recipe) }
                 .onFailure { throwable -> _recipeUiState.value = RecipeUiState.Error(throwable.message?.takeIf { it.isNotBlank() } ?: getString(R.string.parse_error)) }
         }
