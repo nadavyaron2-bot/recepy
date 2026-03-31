@@ -8,7 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Update
+//import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -50,7 +50,7 @@ fun DeveloperScreen(
             Text("ברוך הבא למצב מפתח!", style = MaterialTheme.typography.headlineSmall)
             
             DeveloperCard(
-                title = "באגים שדווחו (זמני)",
+                title = "באגים שדווחו",
                 icon = Icons.Default.BugReport,
                 items = reportedBugs.ifEmpty { listOf("אין דיווחי באגים חדשים") }
             )
@@ -67,15 +67,6 @@ fun DeveloperScreen(
                 items = listOf(
                     "pluralization של מספרים מורכבים (כוס וחצי) - שופר",
                     "זיהוי כותרות מאתרים עם מבנה HTML לא סטנדרטי - בבדיקה"
-                )
-            )
-            
-            DeveloperCard(
-                title = "גרסאות ועדכונים",
-                icon = Icons.Default.Update,
-                items = listOf(
-                    "גרסה נוכחית: 1.0.0",
-                    "שרת עדכונים: GitHub Actions (auto-update.yml)"
                 )
             )
 

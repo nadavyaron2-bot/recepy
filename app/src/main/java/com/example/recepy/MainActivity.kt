@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.edit
@@ -239,7 +240,7 @@ fun RecepyApp(
             )
         }
         composable("developer") {
-            DeveloperScreen(onBack = { navController.popBackStack() })
+            DeveloperScreen(onBack = { navController.popBackStack() }, viewModel = mainViewModel)
         }
         composable("settings") {
             val domainCounts by settingsViewModel.domainCounts.collectAsState()
@@ -250,6 +251,7 @@ fun RecepyApp(
             val downloadProgress by mainViewModel.downloadProgress.collectAsState()
             val importMessage by mainViewModel.importMessage.collectAsState()
             val settingsSnackbarHostState = remember { SnackbarHostState() }
+            val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
             LaunchedEffect(importMessage) {
                 importMessage?.let {
@@ -279,6 +281,12 @@ fun RecepyApp(
                 downloadProgress = downloadProgress,
                 isDeveloper = isDeveloper,
                 onDeveloperModeToggle = { settingsViewModel.setDeveloperMode(it) },
+                onReportBug = { bug ->
+                    mainViewModel.reportBug(bug)
+                    coroutineScope.launch {
+                        settingsSnackbarHostState.showSnackbar("הדיווח נשלח, תודה!")
+                    }
+                },
                 snackbarHostState = settingsSnackbarHostState
             )
         }

@@ -94,6 +94,7 @@ fun SettingsScreen(
     downloadProgress: Float? = null,
     isDeveloper: Boolean = false,
     onDeveloperModeToggle: (Boolean) -> Unit = {},
+    onReportBug: (String) -> Unit = {},
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val showDeleteDialog = remember { mutableStateOf(false) }
@@ -574,6 +575,43 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                 )
+            }
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── Bug Report ──────────────────────────────────────────────────
+            val bugDescription = remember { mutableStateOf("") }
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "דיווח על באג",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "מצאתם בעיה? ספרו לנו ונתקן אותה בהקדם.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = bugDescription.value,
+                    onValueChange = { bugDescription.value = it },
+                    label = { Text("תיאור הבאג") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+                OutlinedButton(
+                    onClick = {
+                        if (bugDescription.value.isNotBlank()) {
+                            onReportBug(bugDescription.value)
+                            bugDescription.value = ""
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.End),
+                    enabled = bugDescription.value.isNotBlank()
+                ) {
+                    Text("שלח דיווח")
+                }
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
 

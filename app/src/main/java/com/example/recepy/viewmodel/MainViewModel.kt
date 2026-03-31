@@ -195,7 +195,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val finalSorted = sorted.sortedByDescending { it.isFavorite }
 
         // Logic for Mako search suggestion
-        if (query.isNotBlank() && !ingredientsMode && finalSorted.isEmpty()) {
+        if (query.isNotBlank() && finalSorted.isEmpty()) {
             _suggestMakoSearch.value = query
             addSuggestedRecipe(query)
         } else {

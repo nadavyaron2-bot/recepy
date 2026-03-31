@@ -284,23 +284,37 @@ fun RecipeDetailScreen(
                             .padding(innerPadding),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
-                        if (isEditing) {
-                            item {
-                                HeaderSection(
-                                    title = editedTitle,
-                                    imageUrl = editedImageUrl,
-                                    isEditing = isEditing,
-                                    onTitleChange = { editedTitle = it },
-                                    onImageUrlChange = { editedImageUrl = it },
-                                    onBack = onBack,
-                                    onShare = {},
-                                    onShareImage = {},
-                                    onEditStart = {},
-                                    onCookingModeStart = {},
-                                    onOpenSource = {},
-                                    sourceUrl = null
-                                )
-                            }
+                        item {
+                            HeaderSection(
+                                title = if (isEditing) editedTitle else recipe.title,
+                                imageUrl = if (isEditing) editedImageUrl else recipe.imageUrl,
+                                isEditing = isEditing,
+                                onTitleChange = { editedTitle = it },
+                                onImageUrlChange = { editedImageUrl = it },
+                                onBack = onBack,
+                                onShare = {
+                                    shareRecipeText(context, buildShareText(recipe.copy(
+                                        title = editedTitle,
+                                        ingredients = editedIngredients.split("\n").map { it.trim() }.filter { it.isNotBlank() },
+                                        steps = editedSteps.split("\n").map { it.trim() }.filter { it.isNotBlank() }
+                                    )))
+                                },
+                                onShareImage = {
+                                    if (isShareCardReady) {
+                                        viewModel.viewModelScope.launch {
+                                            val bitmap = shareGraphicsLayer.toImageBitmap().asAndroidBitmap()
+                                            shareRecipeImage(context, bitmap, recipe.title, recipe.sourceUrl)
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "מכין את התמונה...", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                onEditStart = { isEditing = true },
+                                onCookingModeStart = { updateShowCookingMode(true) },
+                                onOpenSource = { uriHandler.openUri(it) },
+                                sourceUrl = recipe.sourceUrl,
+                                scrollBehavior = null
+                            )
                         }
 
                         if (!isEditing && isSaved) {

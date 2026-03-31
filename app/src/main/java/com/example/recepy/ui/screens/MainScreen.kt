@@ -145,11 +145,17 @@ fun MainScreen(
     }
     val coroutineScope = rememberCoroutineScope()
 
+    val shouldHideTopBar by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 0 || (lazyListState.firstVisibleItemScrollOffset > 0 && !isScrollingUp.value)
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
             AnimatedVisibility(
-                visible = !compactSearchMode && isScrollingUp.value,
+                visible = !compactSearchMode && !shouldHideTopBar,
                 enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
                 exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
             ) {
@@ -256,23 +262,6 @@ fun MainScreen(
                     Text(text = stringResource(id = R.string.no_saved_recipes))
                 }
             } else {
-                if (suggestedMakoSearch != null) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text("לא נמצא מתכון מתאים באוסף שלך.", style = MaterialTheme.typography.bodyMedium)
-                            TextButton(onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, "https://www.mako.co.il/food-recipes/Search?q=$suggestedMakoSearch".toUri())
-                                context.startActivity(intent)
-                            }) {
-                                Text("חפש \"$suggestedMakoSearch\" במאקו אוכל")
-                            }
-                        }
-                    }
-                }
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -321,6 +310,23 @@ fun MainScreen(
                     )
                     IconButton(onClick = onSortToggle) {
                         Icon(if (sortByAlpha) Icons.Default.SortByAlpha else Icons.Default.AccessTime, null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+
+                if (suggestedMakoSearch != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("לא נמצא מתכון מתאים באוסף שלך.", style = MaterialTheme.typography.bodyMedium)
+                            TextButton(onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, "https://www.google.com/search?q=$suggestedMakoSearch".toUri())
+                                context.startActivity(intent)
+                            }) {
+                                Text("חפש \"$suggestedMakoSearch\"")
+                            }
+                        }
                     }
                 }
 
