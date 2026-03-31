@@ -2,7 +2,7 @@
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -264,7 +264,7 @@ fun MainScreen(
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text("לא נמצא מתכון מתאים באוסף שלך.", style = MaterialTheme.typography.bodyMedium)
                             TextButton(onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.mako.co.il/food-recipes/Search?q=$suggestedMakoSearch"))
+                                val intent = Intent(Intent.ACTION_VIEW, "https://www.mako.co.il/food-recipes/Search?q=$suggestedMakoSearch".toUri())
                                 context.startActivity(intent)
                             }) {
                                 Text("חפש \"$suggestedMakoSearch\" במאקו אוכל")

@@ -7,9 +7,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.recepy.viewmodel.MainViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -18,8 +21,12 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeveloperScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: MainViewModel = viewModel()
 ) {
+    val suggestedRecipes by viewModel.suggestedRecipesForDev.collectAsState()
+    val reportedBugs by viewModel.reportedBugs.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -41,6 +48,18 @@ fun DeveloperScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("ברוך הבא למצב מפתח!", style = MaterialTheme.typography.headlineSmall)
+            
+            DeveloperCard(
+                title = "באגים שדווחו (זמני)",
+                icon = Icons.Default.BugReport,
+                items = reportedBugs.ifEmpty { listOf("אין דיווחי באגים חדשים") }
+            )
+
+            DeveloperCard(
+                title = "מתכונים מבוקשים (חיפושים ללא תוצאות)",
+                icon = Icons.Default.Lightbulb,
+                items = suggestedRecipes.ifEmpty { listOf("אין בקשות חדשות") }
+            )
             
             DeveloperCard(
                 title = "באגים בטיפול",
