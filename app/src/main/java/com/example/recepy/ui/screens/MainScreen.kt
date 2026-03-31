@@ -2,6 +2,7 @@
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -121,6 +122,7 @@ fun MainScreen(
     val lastCookedRecipe by viewModel.lastCookedRecipe.collectAsState()
     val searchByIngredients by viewModel.searchByIngredients.collectAsState()
     val shoppingListItems by viewModel.shoppingList.collectAsState()
+    val suggestedMakoSearch by viewModel.suggestMakoSearch.collectAsState()
     val context = LocalContext.current
 
     val prefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
@@ -254,6 +256,23 @@ fun MainScreen(
                     Text(text = stringResource(id = R.string.no_saved_recipes))
                 }
             } else {
+                if (suggestedMakoSearch != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("לא נמצא מתכון מתאים באוסף שלך.", style = MaterialTheme.typography.bodyMedium)
+                            TextButton(onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.mako.co.il/food-recipes/Search?q=$suggestedMakoSearch"))
+                                context.startActivity(intent)
+                            }) {
+                                Text("חפש \"$suggestedMakoSearch\" במאקו אוכל")
+                            }
+                        }
+                    }
+                }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

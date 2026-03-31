@@ -407,12 +407,14 @@ class RecipeParser {
             "div[class*=recipeIngredients] li", "div[class*=recipe_ingredients] li",
             "ul[class*=ingredients] li", "ol[class*=ingredients] li",
             ".recipe-body .ingredients p",
-            // Specific for Israeli sites
+            // Specific for Israeli sites (Mako, Walla, etc.)
             ".ingredients-list .ingredient", ".recipe-ingredients .ingredient",
             ".recipe_ingredients_list li", ".ingredients_container li",
             ".ingredients-table tr", ".recipe-ingred-list li",
             ".recipe-ingredients-item", ".ingredient-list-item",
-            "div.ingredients p", "div.ingredients div"
+            "div.ingredients p", "div.ingredients div",
+            "ul.ingredients li span", "li[itemprop=recipeIngredient]",
+            ".article-content .ingredients li", ".recipe_ingredients .ing_item"
         )
         val INSTRUCTION_SELECTORS = listOf(
             ".recipe-instructions li", ".instructions-list li", ".recipe-instructions p",
@@ -428,11 +430,12 @@ class RecipeParser {
             "div[class*=recipeSteps] p", "div[class*=recipe_steps] p",
             "ul[class*=instructions] li", "ol[class*=instructions] li",
             "ul[class*=steps] li", "ol[class*=steps] li",
-            // Specific for Israeli sites
+            // Specific for Israeli sites (Mako, Walla, etc.)
             ".recipe-steps .step", ".recipe_preparation_list li",
             ".preparation-container p", ".recipe-method p",
             ".recipe-directions p", ".instructions-content p",
-            ".recipe-instructions-item", ".step-list-item"
+            ".recipe-instructions-item", ".step-list-item",
+            ".article-content .instructions p", ".recipe_instructions .step_item"
         )
         val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients", "לבצק", "למילוי", "המרכיבים")
         val TEXT_INSTRUCTION_HEADERS = listOf(

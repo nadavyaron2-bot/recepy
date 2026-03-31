@@ -68,8 +68,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchByIngredients = MutableStateFlow(false)
     val searchByIngredients: StateFlow<Boolean> = _searchByIngredients.asStateFlow()
 
+    private val _suggestMakoSearch = MutableStateFlow<String?>(null)
+    val suggestMakoSearch: StateFlow<String?> = _suggestMakoSearch.asStateFlow()
+
+    private val _suggestedRecipesForDev = MutableStateFlow<List<String>>(emptyList())
+    val suggestedRecipesForDev: StateFlow<List<String>> = _suggestedRecipesForDev.asStateFlow()
+
+    private val _reportedBugs = MutableStateFlow<List<String>>(emptyList())
+    val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
+
     fun toggleSearchMode() {
         _searchByIngredients.value = !_searchByIngredients.value
+    }
+
+    fun reportBug(bug: String) {
+        _reportedBugs.value = _reportedBugs.value + bug
+    }
+
+    fun addSuggestedRecipe(name: String) {
+        if (!_suggestedRecipesForDev.value.contains(name)) {
+            _suggestedRecipesForDev.value = _suggestedRecipesForDev.value + name
+        }
     }
 
     private val _checkedIngredientsMap = MutableStateFlow<Map<Long, Set<Int>>>(emptyMap())
@@ -174,6 +193,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val finalSorted = sorted.sortedByDescending { it.isFavorite }
+
+        // Logic for Mako search suggestion
+        if (query.isNotBlank() && !ingredientsMode && finalSorted.isEmpty()) {
+            _suggestMakoSearch.value = query
+            addSuggestedRecipe(query)
+        } else {
+            _suggestMakoSearch.value = null
+        }
 
         if (query.isBlank() && tagFilters.isEmpty() && lastCooked != null) {
             finalSorted.filter { it.id != lastCooked.id }
