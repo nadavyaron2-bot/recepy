@@ -274,8 +274,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun scaleNumbersAndPluralize(text: String, multiplier: Float): String {
         if (multiplier == 1f) return text
-        val numberRegex = Regex("""\b(\d+(\.\d+)?)\b""")
         
+        val fractions = mapOf(
+            "חצי" to 0.5f,
+            "רבע" to 0.25f,
+            "שליש" to 0.33f,
+            "שני שליש" to 0.66f,
+            "שלושת רבעי" to 0.75f
+        )
+
         val units = listOf(
             "כפית" to "כפיות",
             "כף" to "כפות",
@@ -291,9 +298,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
 
         var resultText = text
-        val matches = numberRegex.findAll(text).toList()
         
-        if (matches.isEmpty()) {
+        // בדיקה אם הטקסט מכיל שברי מילים (חצי, רבע וכו')
+        var baseValue: Float? = null
+        for ((word, value) in fractions) {
+            if (resultText.contains(word)) {
+                baseValue = value
+                val scaled = value * multiplier
+                val scaledStr = if (scaled % 1.0f == 0f) scaled.toInt().toString() else "%.1f".format(scaled)
+                resultText = resultText.replace(word, scaledStr)
+                break
+            }
+        }
+
+        val numberRegex = Regex("""\b(\d+(\.\d+)?)\b""")
+        val matches = numberRegex.findAll(resultText).toList()
+        
+        if (matches.isEmpty() && baseValue == null) {
             if (multiplier > 1f) {
                 units.forEach { (singular, plural) ->
                     if (resultText.contains(singular) && !resultText.contains(plural)) {
@@ -305,24 +326,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return "$multStr x $resultText"
         }
 
-        val firstNum = matches[0].value.toFloatOrNull() ?: 0f
-        val firstScaled = firstNum * multiplier
+        // אם מצאנו מספר (או שהחלפנו מילה במספר), נבצע התאמת רבים/יחיד
+        val finalNum = matches.firstOrNull()?.value?.toFloatOrNull() ?: (baseValue?.times(multiplier)) ?: 0f
         
         units.forEach { (singular, plural) ->
-            if (firstScaled == 1f) {
-                if (resultText.contains(plural)) {
-                    resultText = resultText.replace(plural, singular)
-                }
-            } else if (firstScaled > 1f) {
+            if (finalNum == 1f) {
+                if (resultText.contains(plural)) resultText = resultText.replace(plural, singular)
+            } else if (finalNum > 1f) {
                 if (resultText.contains(singular) && !resultText.contains(plural)) {
                     resultText = resultText.replace(singular, plural)
                 }
             }
         }
 
+        // החלפת שאר המספרים בטקסט (אם יש) - למעט זה שכבר טיפלנו בו אם הוא הגיע ממילה
         return numberRegex.replace(resultText) { matchResult ->
             val num = matchResult.value.toFloatOrNull() ?: return@replace matchResult.value
-            val scaled = num * multiplier
+            // אם המספר הזה הוא תוצאה של החלפת מילה, הוא כבר מוכפל. אם לא, נכפיל אותו.
+            val alreadyScaled = baseValue != null && matchResult.value == (baseValue * multiplier).let { if (it % 1.0f == 0f) it.toInt().toString() else "%.1f".format(it) }
+            
+            val scaled = if (alreadyScaled) num else num * multiplier
             if (scaled % 1.0f == 0f) scaled.toInt().toString() else "%.1f".format(scaled)
         }
     }

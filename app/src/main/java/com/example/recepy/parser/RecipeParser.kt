@@ -386,26 +386,30 @@ class RecipeParser {
 
     private companion object {
         val INGREDIENT_KEYWORDS = listOf(
-            "ingredients", "ingredient", "מצרכים", "רכיבים", "מה צריך", "החומרים", "המרכיבים", "מה להכין", "לבצק", "למילוי", "לציפוי"
+            "ingredients", "ingredient", "מצרכים", "רכיבים", "מה צריך", "החומרים", "המרכיבים", "מה להכין", "לבצק", "למילוי", "לציפוי", "לשכבה", "לרוטב"
         )
         val INSTRUCTION_KEYWORDS = listOf(
             "instructions", "instruction", "directions", "method", "preparation",
-            "אופן הכנה", "הוראות הכנה", "שלבי הכנה", "איך מכינים", "הכנה", "תהליך ההכנה", "שלבי ההכנה", "אופן ההכנה"
+            "אופן הכנה", "הוראות הכנה", "שלבי הכנה", "איך מכינים", "הכנה", "תהליך ההכנה", "שלבי ההכנה", "אופן ההכנה", "מהלך ההכנה"
         )
         val INGREDIENT_SELECTORS = listOf(
-            ".ingredients-list li", ".recipe-ingredients li", "[class*=ingredients] li", 
+            ".recipe-ingredients li", ".ingredients-list li", ".recipe-ingredients p",
             ".ingredient-item", ".ingredient", ".recipe__ingredients-list li",
-            "div[class*=ingredients] p", "section[id*=ingredients] li",
-            ".chef-ingredients li", ".foody-ingredients li", ".recipe-ingredients p",
+            "div[class*=ingredients] li", "section[id*=ingredients] li",
+            ".foody-ingredients li", ".chef-ingredients li",
             ".ingredients_list li", ".ingredients li",
             ".recipe-ingredients-list li", ".recipe-ingredients__list-item",
             ".recipe_ingredients li", ".recipeIngredients li",
             "div.ingredients-box li", "div.recipe-materials li",
             "ul.recipe-ingredients-list li", "ul.ingredients-list li",
-            ".entry-content ul li", ".recipe-content ul li"
+            ".entry-content ul li", ".recipe-content ul li",
+            ".recipe-ingredients-wrap li", ".ingredients_item",
+            "div[class*=recipeIngredients] li", "div[class*=recipe_ingredients] li",
+            "ul[class*=ingredients] li", "ol[class*=ingredients] li",
+            ".recipe-body .ingredients p"
         )
         val INSTRUCTION_SELECTORS = listOf(
-            ".instructions-list li", ".recipe-instructions li", "[class*=instructions] li",
+            ".recipe-instructions li", ".instructions-list li", ".recipe-instructions p",
             ".instruction-item", ".step", ".recipe__instructions-list li",
             "div[class*=steps] p", "section[id*=instructions] p", "div[class*=method] p",
             ".preparation-steps li", ".recipe-steps p", ".instruction p", ".steps li",
@@ -413,11 +417,15 @@ class RecipeParser {
             ".recipe_instructions li", ".recipeInstructions li",
             "div.instructions-box li", "div.recipe-steps-list li",
             "ol.recipe-instructions-list li", "ol.instructions-list li",
-            ".entry-content ol li", ".recipe-content ol li"
+            ".entry-content ol li", ".recipe-content ol li",
+            ".recipe-steps-wrap li", ".step_item",
+            "div[class*=recipeSteps] p", "div[class*=recipe_steps] p",
+            "ul[class*=instructions] li", "ol[class*=instructions] li",
+            "ul[class*=steps] li", "ol[class*=steps] li"
         )
-        val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients", "לבצק", "למילוי")
+        val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients", "לבצק", "למילוי", "המרכיבים")
         val TEXT_INSTRUCTION_HEADERS = listOf(
-            "הוראות", "אופן הכנה", "הכנה", "איך מכינים", "instructions", "directions", "אופן ההכנה"
+            "הוראות", "אופן הכנה", "הכנה", "איך מכינים", "instructions", "directions", "אופן ההכנה", "שלבי הכנה"
         )
         val TITLE_KEYWORDS = listOf("שם", "title", "recipe", "מתכון")
     }

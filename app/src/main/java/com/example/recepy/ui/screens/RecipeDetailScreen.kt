@@ -38,7 +38,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.layout as modifierLayout
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
@@ -77,6 +83,8 @@ fun RecipeDetailScreen(
     viewModel: MainViewModel = viewModel()
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    fun updateShowDeleteDialog(show: Boolean) { showDeleteDialog = show }
+
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
@@ -101,13 +109,53 @@ fun RecipeDetailScreen(
 
     val shareGraphicsLayer = rememberGraphicsLayer()
     var isShareCardReady by remember(recipe?.id) { mutableStateOf(false) }
+    fun updateIsShareCardReady(ready: Boolean) { isShareCardReady = ready }
+
 
     var showCookingMode by remember { mutableStateOf(false) }
+    fun updateShowCookingMode(show: Boolean) { showCookingMode = show }
+
+
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
             Scaffold(
                 modifier = modifier,
+                topBar = {
+                    if (!isEditing && recipe != null) {
+                        HeaderSection(
+                            title = editedTitle,
+                            imageUrl = editedImageUrl,
+                            isEditing = isEditing,
+                            onTitleChange = { editedTitle = it },
+                            onImageUrlChange = { editedImageUrl = it },
+                            onBack = onBack,
+                            onShare = {
+                                shareRecipeText(context, buildShareText(recipe.copy(
+                                    title = editedTitle,
+                                    ingredients = editedIngredients.split("\n").map { it.trim() }.filter { it.isNotBlank() },
+                                    steps = editedSteps.split("\n").map { it.trim() }.filter { it.isNotBlank() }
+                                )))
+                            },
+                            onShareImage = {
+                                if (isShareCardReady) {
+                                    viewModel.viewModelScope.launch {
+                                        val bitmap = shareGraphicsLayer.toImageBitmap().asAndroidBitmap()
+                                        shareRecipeImage(context, bitmap, recipe.title, recipe.sourceUrl)
+                                    }
+                                } else {
+                                    Toast.makeText(context, "מכין את התמונה...", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            onEditStart = { isEditing = true },
+                            onCookingModeStart = { updateShowCookingMode(true) },
+                            onOpenSource = { uriHandler.openUri(it) },
+                            sourceUrl = recipe.sourceUrl,
+                            scrollBehavior = scrollBehavior
+                        )
+                    }
+                },
                 bottomBar = {
                     Column {
                         AnimatedVisibility(
@@ -131,7 +179,7 @@ fun RecipeDetailScreen(
                                         val minutes = timerSeconds / 60
                                         val seconds = timerSeconds % 60
                                         Text(
-                                            text = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds),
+                                            text = String.format(Locale.US, "%02d:%02d", minutes, seconds),
                                             style = MaterialTheme.typography.headlineMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -210,7 +258,7 @@ fun RecipeDetailScreen(
                     if (!isEditing) {
                         ExtendedFloatingActionButton(
                             onClick = {
-                                if (isSaved) showDeleteDialog = true else recipe?.let { onSave(it) }
+                                if (isSaved) updateShowDeleteDialog(true) else recipe?.let { onSave(it) }
                             },
                             expanded = true,
                             icon = { Icon(if (isSaved) Icons.Default.Delete else Icons.Default.Save, null) },
@@ -236,36 +284,23 @@ fun RecipeDetailScreen(
                             .padding(innerPadding),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
-                        item {
-                            HeaderSection(
-                                title = editedTitle,
-                                imageUrl = editedImageUrl,
-                                isEditing = isEditing,
-                                onTitleChange = { editedTitle = it },
-                                onImageUrlChange = { editedImageUrl = it },
-                                onBack = onBack,
-                                onShare = {
-                                    shareRecipeText(context, buildShareText(recipe.copy(
-                                        title = editedTitle,
-                                        ingredients = editedIngredients.split("\n").map { it.trim() }.filter { it.isNotBlank() },
-                                        steps = editedSteps.split("\n").map { it.trim() }.filter { it.isNotBlank() }
-                                    )))
-                                },
-                                onShareImage = {
-                                    if (isShareCardReady) {
-                                        viewModel.viewModelScope.launch {
-                                            val bitmap = shareGraphicsLayer.toImageBitmap().asAndroidBitmap()
-                                            shareRecipeImage(context, bitmap, recipe.title, recipe.sourceUrl)
-                                        }
-                                    } else {
-                                        Toast.makeText(context, "מכין את התמונה...", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                onEditStart = { isEditing = true },
-                                onCookingModeStart = { showCookingMode = true },
-                                onOpenSource = { uriHandler.openUri(it) },
-                                sourceUrl = recipe.sourceUrl
-                            )
+                        if (isEditing) {
+                            item {
+                                HeaderSection(
+                                    title = editedTitle,
+                                    imageUrl = editedImageUrl,
+                                    isEditing = isEditing,
+                                    onTitleChange = { editedTitle = it },
+                                    onImageUrlChange = { editedImageUrl = it },
+                                    onBack = onBack,
+                                    onShare = {},
+                                    onShareImage = {},
+                                    onEditStart = {},
+                                    onCookingModeStart = {},
+                                    onOpenSource = {},
+                                    sourceUrl = null
+                                )
+                            }
                         }
 
                         if (!isEditing && isSaved) {
@@ -548,10 +583,8 @@ fun RecipeDetailScreen(
                 if (recipe != null) {
                     Box(
                         modifier = Modifier
-                            .layout { measurable, _ ->
-                                // Use loose constraints to ensure the card gets its desired width (e.g. 400dp)
-                                // even if the screen is narrower.
-                                val placeable = measurable.measure(androidx.compose.ui.unit.Constraints())
+                            .modifierLayout { measurable: Measurable, _: Constraints ->
+                                val placeable = measurable.measure(Constraints())
                                 layout(placeable.width, placeable.height) {
                                     placeable.place(-5000, -5000)
                                 }
@@ -560,13 +593,12 @@ fun RecipeDetailScreen(
                                 shareGraphicsLayer.record {
                                     this@drawWithContent.drawContent()
                                 }
-                                // Do not draw on the actual screen
                             }
                     ) {
                         RecipeShareCard(
                             recipe = recipe,
                             modifier = Modifier.width(600.dp),
-                            onImageReady = { isShareCardReady = true }
+                            onImageReady = { updateIsShareCardReady(it) }
                         )
                     }
                 }
@@ -574,14 +606,14 @@ fun RecipeDetailScreen(
 
             if (showDeleteDialog) {
                 AlertDialog(
-                    onDismissRequest = { showDeleteDialog = false },
+                    onDismissRequest = { updateShowDeleteDialog(false) },
                     title = { Text(text = stringResource(id = R.string.delete_recipe_title)) },
                     text = { Text(text = stringResource(id = R.string.delete_recipe_message)) },
                     confirmButton = {
-                        TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text(text = stringResource(id = R.string.delete), color = Color.Red) }
+                        TextButton(onClick = { onDelete(); updateShowDeleteDialog(false) }) { Text(text = stringResource(id = R.string.delete), color = Color.Red) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDeleteDialog = false }) { Text(text = stringResource(id = R.string.cancel)) }
+                        TextButton(onClick = { updateShowDeleteDialog(false) }) { Text(text = stringResource(id = R.string.cancel)) }
                     }
                 )
             }
@@ -589,7 +621,7 @@ fun RecipeDetailScreen(
             if (showCookingMode && recipe != null) {
                 CookingModeScreen(
                     recipe = recipe,
-                    onDismiss = { showCookingMode = false }
+                    onDismiss = { updateShowCookingMode(false) }
                 )
             }
         }
@@ -602,114 +634,292 @@ fun CookingModeScreen(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    DisposableEffect(Unit) {
-        // Here we would ideally use a Window flag to keep screen on, 
-        // but in a Composable sub-view we can use a View-based approach or assume the user has the global setting.
-        // For now, we'll focus on the UI.
-        onDispose { }
+    val view = androidx.compose.ui.platform.LocalView.current
+    val coroutineScope = rememberCoroutineScope()
+    
+    // שמירה על מסך דולק במצב בישול
+    DisposableEffect(view) {
+        val originalKeepScreenOn = view.keepScreenOn
+        view.keepScreenOn = true
+        onDispose {
+            view.keepScreenOn = originalKeepScreenOn
+        }
     }
+
+    // מעקב אחר שלבים שהושלמו
+    var completedSteps by remember { mutableStateOf(setOf<Int>()) }
+    
+    // מצב הטיימר הגלובלי
+    val timerSeconds by RecipeTimerManager.timeRemaining.collectAsState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // Header
             Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = recipe.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                    Text(
+                        text = recipe.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "מצב בישול פעיל",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                if (timerSeconds > 0) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.clickable { 
+                            // אולי להוסיף פעולה ללחיצה על הטיימר
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Timer, null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            val mins = timerSeconds / 60
+                            val secs = timerSeconds % 60
+                            Text(
+                                String.format(Locale.US, "%02d:%02d", mins, secs),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
 
+            // Progress Bar
             val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { recipe.steps.size + 1 })
+            val progress = (pagerState.currentPage.toFloat() / (recipe.steps.size)).coerceIn(0f, 1f)
             
-            androidx.compose.foundation.pager.HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 32.dp),
-                pageSpacing = 16.dp
-            ) { page ->
-                Card(
-                    modifier = Modifier.fillMaxSize().padding(vertical = 32.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                        if (page == 0) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("מצרכים", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.height(24.dp))
-                                LazyColumn {
-                                    items(recipe.ingredients) { ingredient ->
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(4.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+
+            Box(modifier = Modifier.weight(1f)) {
+                androidx.compose.foundation.pager.HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    pageSpacing = 16.dp,
+                    userScrollEnabled = true
+                ) { page ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(vertical = 16.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+                            if (page == 0) {
+                                // עמוד מצרכים
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.ShoppingCart, null, tint = MaterialTheme.colorScheme.primary)
+                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "• $ingredient",
-                                            style = MaterialTheme.typography.titleLarge,
-                                            modifier = Modifier.padding(vertical = 8.dp),
-                                            lineHeight = 32.sp
+                                            "מה צריך?",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    LazyColumn(modifier = Modifier.weight(1f)) {
+                                        items(recipe.ingredients) { ingredient ->
+                                            Row(
+                                                modifier = Modifier.padding(vertical = 8.dp),
+                                                verticalAlignment = Alignment.Top
+                                            ) {
+                                                Text("•", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text(
+                                                    text = ingredient,
+                                                    style = MaterialTheme.typography.titleLarge,
+                                                    lineHeight = 32.sp
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
-                            }
-                        } else {
-                            val stepIndex = page - 1
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("שלב $page מתוך ${recipe.steps.size}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
-                                Spacer(modifier = Modifier.height(24.dp))
-                                Text(
-                                    text = recipe.steps[stepIndex],
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    lineHeight = 44.sp,
-                                    modifier = Modifier.verticalScroll(rememberScrollState())
-                                )
+                            } else {
+                                // עמודי שלבים
+                                val stepIndex = page - 1
+                                val isDone = completedSteps.contains(stepIndex)
                                 
-                                val timerMins = extractTimerMinutes(recipe.steps[stepIndex])
-                                if (timerMins != null) {
-                                    Spacer(modifier = Modifier.height(32.dp))
-                                    Button(
-                                        onClick = { RecipeTimerManager.startTimer(context, timerMins * 60, recipe.title) },
-                                        shape = CircleShape,
-                                        modifier = Modifier.height(56.dp)
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(Icons.Default.Timer, null)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("הפעל טיימר ($timerMins דק')", style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            "שלב $page מתוך ${recipe.steps.size}",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
+                                        
+                                        FilterChip(
+                                            selected = isDone,
+                                            onClick = {
+                                                completedSteps = if (isDone) completedSteps - stepIndex else completedSteps + stepIndex
+                                            },
+                                            label = { Text(if (isDone) "בוצע!" else "סמן כבוצע") },
+                                            leadingIcon = if (isDone) {
+                                                { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
+                                            } else null
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = recipe.steps[stepIndex],
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Medium,
+                                            lineHeight = 42.sp,
+                                            modifier = Modifier
+                                                .verticalScroll(rememberScrollState())
+                                                .fillMaxWidth(),
+                                            textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
+                                            color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    
+                                    val timerMins = extractTimerMinutes(recipe.steps[stepIndex])
+                                    if (timerMins != null) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Button(
+                                            onClick = { RecipeTimerManager.startTimer(context, timerMins * 60, recipe.title) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(16.dp)
+                                        ) {
+                                            Icon(Icons.Default.Timer, null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("הפעל טיימר ל-$timerMins דקות")
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+                
+                // Navigation Buttons (Floating)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 32.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (pagerState.currentPage > 0) {
+                        LargeNavigationButton(
+                            icon = Icons.Default.ChevronRight,
+                            onClick = {
+                                coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                            }
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.width(64.dp))
+                    }
+
+                    if (pagerState.currentPage < recipe.steps.size) {
+                        LargeNavigationButton(
+                            icon = Icons.Default.ChevronLeft,
+                            onClick = {
+                                coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                            }
+                        )
+                    } else {
+                        // כפתור סיום
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier.height(64.dp),
+                            shape = RoundedCornerShape(32.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Default.Celebration, null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("סיימתי לבשל!", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
-            
+
+            // Pager Indicators
             Row(
-                Modifier.height(50.dp).fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                Modifier
+                    .height(40.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 repeat(recipe.steps.size + 1) { iteration ->
-                    val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    val color = if (pagerState.currentPage == iteration) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    
                     Box(
                         modifier = Modifier
                             .padding(4.dp)
                             .clip(CircleShape)
                             .background(color)
-                            .size(10.dp)
+                            .size(if (pagerState.currentPage == iteration) 10.dp else 8.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
+
+@Composable
+fun LargeNavigationButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        tonalElevation = 6.dp,
+        modifier = Modifier.size(64.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, null, modifier = Modifier.size(36.dp))
+        }
+    }
+}
+
 
 fun scaleNumbersInText(text: String, multiplier: Float): String {
     if (multiplier == 1f) return text
@@ -717,7 +927,7 @@ fun scaleNumbersInText(text: String, multiplier: Float): String {
     return regex.replace(text) { matchResult ->
         val num = matchResult.value.toFloatOrNull() ?: return@replace matchResult.value
         val scaled = num * multiplier
-        if (scaled % 1.0f == 0f) scaled.toInt().toString() else String.format(Locale.getDefault(), "%.1f", scaled)
+        if (scaled % 1.0f == 0f) scaled.toInt().toString() else String.format(Locale.US, "%.1f", scaled)
     }
 }
 
@@ -743,7 +953,8 @@ fun HeaderSection(
     onTitleChange: (String) -> Unit, onImageUrlChange: (String?) -> Unit,
     onBack: () -> Unit, onShare: () -> Unit, onShareImage: () -> Unit,
     onEditStart: () -> Unit, onCookingModeStart: () -> Unit,
-    onOpenSource: (String) -> Unit
+    onOpenSource: (String) -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     val context = LocalContext.current
     var showShareOptions by remember { mutableStateOf(false) }
@@ -758,41 +969,91 @@ fun HeaderSection(
         }
     )
 
-    Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
-        if (!imageUrl.isNullOrEmpty()) {
-            AsyncImage(model = imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-            if (isEditing) {
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
-                Row(modifier = Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    IconButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)) { Icon(Icons.Default.Edit, contentDescription = "Change Image", tint = Color.White) }
-                    IconButton(onClick = { onImageUrlChange(null) }, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)) { Icon(Icons.Default.Delete, contentDescription = "Remove Image", tint = Color.White) }
+    // חישוב שקיפות התמונה בהתאם לגלילה
+    val alpha = scrollBehavior?.let {
+        1f - it.state.collapsedFraction
+    } ?: 1f
+
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(if (scrollBehavior != null) (280.dp * alpha).coerceAtLeast(0.dp) else 280.dp)
+                .graphicsLayer { this.alpha = alpha }
+        ) {
+            if (!imageUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (isEditing) {
+                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+                    Row(modifier = Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                        IconButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)) { Icon(Icons.Default.Edit, contentDescription = "Change Image", tint = Color.White) }
+                        IconButton(onClick = { onImageUrlChange(null) }, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)) { Icon(Icons.Default.Delete, contentDescription = "Remove Image", tint = Color.White) }
+                    }
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                    if (isEditing) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.background(MaterialTheme.colorScheme.primary, CircleShape)) { Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Add Image", tint = MaterialTheme.colorScheme.onPrimary) }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("הוסף תמונה", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    } else {
+                        Text(text = stringResource(id = R.string.no_image), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
-        } else {
-            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
-                if (isEditing) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        IconButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.background(MaterialTheme.colorScheme.primary, CircleShape)) { Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Add Image", tint = MaterialTheme.colorScheme.onPrimary) }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("הוסף תמונה", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                } else {
-                    Text(text = stringResource(id = R.string.no_image), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+            
+            // גרדיאנט שחור רק כשיש תמונה
+            if (!imageUrl.isNullOrEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent, Color.Black.copy(alpha = 0.7f)), 0f, Float.POSITIVE_INFINITY)))
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent, Color.Black.copy(alpha = 0.7f)), 0f, Float.POSITIVE_INFINITY)))
+        val topBarContainerColor = if (alpha < 0.1f) MaterialTheme.colorScheme.surface else Color.Transparent
+        val contentColor = if (alpha < 0.1f) MaterialTheme.colorScheme.onSurface else Color.White
 
         TopAppBar(
-            title = { },
-            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.back), tint = Color.White) } },
+            title = {
+                if (alpha < 0.5f || isEditing) {
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = title, onValueChange = onTitleChange, label = { Text("כותרת המתכון") },
+                            modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                            textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            singleLine = true
+                        )
+                    } else {
+                        Text(
+                            text = title.takeIf { it.isNotBlank() } ?: stringResource(id = R.string.fallback_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(id = R.string.back),
+                        tint = contentColor
+                    )
+                }
+            },
             actions = {
                 if (!isEditing) {
-                    IconButton(onClick = onCookingModeStart) { Icon(Icons.Default.RestaurantMenu, "Cooking Mode", tint = Color.White) }
-                    IconButton(onClick = onEditStart) { Icon(Icons.Default.Edit, "Edit Recipe", tint = Color.White) }
-                    if (sourceUrl?.startsWith("http", ignoreCase = true) == true) IconButton(onClick = { onOpenSource(sourceUrl) }) { Icon(Icons.Default.OpenInBrowser, "Open URL", tint = Color.White) }
-                    IconButton(onClick = { showShareOptions = true }) { Icon(Icons.Default.Share, stringResource(id = R.string.share_recipe), tint = Color.White) }
+                    IconButton(onClick = onCookingModeStart) { Icon(Icons.Default.RestaurantMenu, "Cooking Mode", tint = contentColor) }
+                    IconButton(onClick = onEditStart) { Icon(Icons.Default.Edit, "Edit Recipe", tint = contentColor) }
+                    if (sourceUrl?.startsWith("http", ignoreCase = true) == true) IconButton(onClick = { onOpenSource(sourceUrl) }) { Icon(Icons.Default.OpenInBrowser, "Open URL", tint = contentColor) }
+                    IconButton(onClick = { showShareOptions = true }) { Icon(Icons.Default.Share, stringResource(id = R.string.share_recipe), tint = contentColor) }
                     
                     DropdownMenu(expanded = showShareOptions, onDismissRequest = { showShareOptions = false }) {
                         DropdownMenuItem(
@@ -808,18 +1069,24 @@ fun HeaderSection(
                     }
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            scrollBehavior = scrollBehavior,
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = topBarContainerColor,
+                scrolledContainerColor = MaterialTheme.colorScheme.surface
+            )
         )
 
-        if (isEditing) {
-            OutlinedTextField(
-                value = title, onValueChange = onTitleChange, label = { Text("כותרת המתכון") },
-                modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 20.dp, vertical = 24.dp).fillMaxWidth(),
-                textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
-                colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.White, focusedBorderColor = Color.White, cursorColor = Color.White, focusedLabelColor = Color.White, unfocusedLabelColor = Color.White)
+        // כותרת גדולה שמופיעה כשהתמונה גלויה
+        if (!isEditing && alpha >= 0.5f) {
+            Text(
+                text = title.takeIf { it.isNotBlank() } ?: stringResource(id = R.string.fallback_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (!imageUrl.isNullOrEmpty()) Color.White else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .graphicsLayer { this.alpha = (alpha - 0.5f) * 2f }
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
             )
-        } else {
-            Text(text = title.takeIf { it.isNotBlank() } ?: stringResource(id = R.string.fallback_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 20.dp, vertical = 24.dp))
         }
     }
 }
@@ -829,7 +1096,8 @@ fun shareRecipeImage(context: Context, bitmap: Bitmap, title: String, sourceUrl:
     FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     
-    val shareBody = "🍽️ $title\nשותף מהאפליקציה Recepy!"
+    val sourcePart = if (sourceUrl.startsWith("http", ignoreCase = true)) "\n🔗 מקור: $sourceUrl" else ""
+    val shareBody = "🍽️ $title$sourcePart\nשותף מהאפליקציה Recepy!"
 
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
@@ -857,12 +1125,12 @@ fun shareRecipeText(context: Context, shareText: String) {
 }
 
 @Composable
-fun RecipeShareCard(recipe: Recipe, modifier: Modifier = Modifier, onImageReady: () -> Unit = {}) {
+fun RecipeShareCard(recipe: Recipe, modifier: Modifier = Modifier, onImageReady: (Boolean) -> Unit = {}) {
     val hasImage = !recipe.imageUrl.isNullOrEmpty()
 
     if (!hasImage) {
         LaunchedEffect(recipe.id) {
-            onImageReady()
+            onImageReady(true)
         }
     }
 
@@ -915,8 +1183,8 @@ fun RecipeShareCard(recipe: Recipe, modifier: Modifier = Modifier, onImageReady:
                             model = recipe.imageUrl,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
-                            onSuccess = { onImageReady() },
-                            onError = { onImageReady() },
+                            onSuccess = { onImageReady(true) },
+                            onError = { onImageReady(true) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(160.dp)

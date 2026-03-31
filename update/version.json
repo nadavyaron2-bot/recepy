@@ -1,5 +1,7 @@
 {
-  "versionCode": 13,
-  "versionName": "1.1.1",
+  "inherit": true,
+  "version": 14,
+  "versionCode": 14,
+  "versionName": "1.1.2",
   "downloadUrl": "https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/master/update/app-release.apk"
 }
