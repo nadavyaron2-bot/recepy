@@ -45,6 +45,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             initialValue = emptyMap()
         )
 
+    val isDeveloper: StateFlow<Boolean> = preferences.isDeveloper.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = false
+    )
+
     fun updateThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
             preferences.setThemeMode(themeMode)
@@ -54,6 +60,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun updateAppTheme(appTheme: AppTheme) {
         viewModelScope.launch {
             preferences.setAppTheme(appTheme)
+        }
+    }
+
+    fun setDeveloperMode(enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.setDeveloperMode(enabled)
         }
     }
 

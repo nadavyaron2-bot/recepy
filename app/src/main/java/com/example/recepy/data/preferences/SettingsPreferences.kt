@@ -55,8 +55,19 @@ class SettingsPreferences(
         }
     }
 
+    val isDeveloper: Flow<Boolean> = context.settingsDataStore.data.map { preferences ->
+        preferences[IS_DEVELOPER_KEY] ?: false
+    }
+
+    suspend fun setDeveloperMode(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[IS_DEVELOPER_KEY] = enabled
+        }
+    }
+
     private companion object {
         val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         val APP_THEME_KEY = stringPreferencesKey("app_theme")
+        val IS_DEVELOPER_KEY = androidx.datastore.preferences.core.booleanPreferencesKey("is_developer")
     }
 }

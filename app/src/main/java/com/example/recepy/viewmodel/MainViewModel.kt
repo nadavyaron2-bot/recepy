@@ -280,7 +280,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "רבע" to 0.25f,
             "שליש" to 0.33f,
             "שני שליש" to 0.66f,
-            "שלושת רבעי" to 0.75f
+            "שלושת רבעי" to 0.75f,
+            "שלוש ורבע" to 3.25f,
+            "שלושה רבעים" to 0.75f,
+            "כוס וחצי" to 1.5f,
+            "כפית וחצי" to 1.5f,
+            "כף וחצי" to 1.5f,
+            "חצי כוס" to 0.5f,
+            "רבע כוס" to 0.25f
         )
 
         val units = listOf(
@@ -299,12 +306,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         var resultText = text
         
-        // בדיקה אם הטקסט מכיל שברי מילים (חצי, רבע וכו')
+        // בדיקה אם הטקסט מכיל שברי מילים מורכבים קודם (הארוכים ביותר)
+        val sortedFractions = fractions.keys.sortedByDescending { it.length }
         var baseValue: Float? = null
-        for ((word, value) in fractions) {
+        for (word in sortedFractions) {
             if (resultText.contains(word)) {
-                baseValue = value
-                val scaled = value * multiplier
+                baseValue = fractions[word]
+                val scaled = baseValue!! * multiplier
                 val scaledStr = if (scaled % 1.0f == 0f) scaled.toInt().toString() else "%.1f".format(scaled)
                 resultText = resultText.replace(word, scaledStr)
                 break

@@ -75,6 +75,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
+    modifier: Modifier = Modifier,
     urlInput: String,
     onUrlChanged: (String) -> Unit,
     onExtractClick: () -> Unit,
@@ -91,7 +92,8 @@ fun MainScreen(
     sortByAlpha: Boolean,
     onSortToggle: () -> Unit,
     snackbarHostState: SnackbarHostState,
-    modifier: Modifier = Modifier,
+    onDeveloperToolClick: () -> Unit = {},
+    isDeveloper: Boolean = false,
     viewModel: MainViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) {
@@ -159,6 +161,15 @@ fun MainScreen(
                                 Icon(
                                     imageVector = Icons.Default.ShoppingCart,
                                     contentDescription = "רשימת קניות"
+                                )
+                            }
+                        }
+                        if (isDeveloper) {
+                            IconButton(onClick = onDeveloperToolClick) {
+                                Icon(
+                                    imageVector = Icons.Default.Build,
+                                    contentDescription = "Developer Tools",
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }

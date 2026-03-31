@@ -34,21 +34,24 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.recepy.R
 import com.example.recepy.data.preferences.AppTheme
@@ -89,23 +92,80 @@ fun SettingsScreen(
     onCheckForUpdates: () -> Unit = {},
     onCheckAppUpdate: () -> Unit = {},
     downloadProgress: Float? = null,
+    isDeveloper: Boolean = false,
+    onDeveloperModeToggle: (Boolean) -> Unit = {},
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var selectedDomains by remember { mutableStateOf<Set<String>>(emptySet()) }
-
-    fun updateShowDeleteDialog(show: Boolean) { showDeleteDialog = show }
-    fun updateSelectedDomains(domains: Set<String>) { selectedDomains = domains }
+    val showDeleteDialog = remember { mutableStateOf(false) }
+    val selectedDomains = remember { mutableStateOf<Set<String>>(emptySet()) }
+    
+    // Developer Mode Logic
+    val devClickCount = remember { mutableIntStateOf(0) }
+    val lastClickTime = remember { mutableLongStateOf(0L) }
+    val showDevLoginDialog = remember { mutableStateOf(false) }
+    val devUsername = remember { mutableStateOf("") }
+    val devPassword = remember { mutableStateOf("") }
+    val loginError = remember { mutableStateOf(false) }
 
     val allDomains = domainCounts.keys.sorted()
 
+    // ── Developer Login Dialog ─────────────────────────────────────────────
+    if (showDevLoginDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showDevLoginDialog.value = false },
+            title = { Text("כניסת מפתחים") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("הכנס פרטי גישה למצב מפתחים:")
+                    OutlinedTextField(
+                        value = devUsername.value,
+                        onValueChange = { devUsername.value = it; loginError.value = false },
+                        label = { Text("שם משתמש") },
+                        isError = loginError.value
+                    )
+                    OutlinedTextField(
+                        value = devPassword.value,
+                        onValueChange = { devPassword.value = it; loginError.value = false },
+                        label = { Text("סיסמה") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        isError = loginError.value
+                    )
+                    if (loginError.value) {
+                        Text(
+                            "שם משתמש או סיסמה שגויים",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (devUsername.value == "admin" && devPassword.value == "recepy2024") {
+                        onDeveloperModeToggle(true)
+                        showDevLoginDialog.value = false
+                    } else {
+                        loginError.value = true
+                    }
+                }) {
+                    Text("התחבר")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDevLoginDialog.value = false }) {
+                    Text("ביטול")
+                }
+            }
+        )
+    }
+
     // ── Delete dialog ─────────────────────────────────────────────────────────
-    if (showDeleteDialog) {
-        val allSelected = selectedDomains.size == allDomains.size
+    if (showDeleteDialog.value) {
+        val allSelected = selectedDomains.value.size == allDomains.size
 
         AlertDialog(
             onDismissRequest = {
-                updateShowDeleteDialog(false)
+                showDeleteDialog.value = false
             },
             title = { Text(stringResource(R.string.delete_by_source_title)) },
             text = {
@@ -146,7 +206,7 @@ fun SettingsScreen(
                         Checkbox(
                             checked = allSelected,
                             onCheckedChange = { checked ->
-                                updateSelectedDomains(if (checked) allDomains.toSet() else emptySet())
+                                selectedDomains.value = if (checked) allDomains.toSet() else emptySet()
                             }
                         )
                     }
@@ -156,7 +216,7 @@ fun SettingsScreen(
                     // שורה לכל domain — פעם אחת בלבד
                     allDomains.forEach { domain ->
                         val count   = domainCounts[domain] ?: 0
-                        val checked = domain in selectedDomains
+                        val checked = domain in selectedDomains.value
 
                         Row(
                             modifier = Modifier
@@ -179,10 +239,10 @@ fun SettingsScreen(
                             Checkbox(
                                 checked = checked,
                                 onCheckedChange = { isChecked ->
-                                    updateSelectedDomains(if (isChecked)
-                                        selectedDomains + domain
+                                    selectedDomains.value = if (isChecked)
+                                        selectedDomains.value + domain
                                     else
-                                        selectedDomains - domain)
+                                        selectedDomains.value - domain
                                 }
                             )
                         }
@@ -194,21 +254,21 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onDeleteByDomains(selectedDomains)
-                        updateShowDeleteDialog(false)
+                        onDeleteByDomains(selectedDomains.value)
+                        showDeleteDialog.value = false
                     },
-                    enabled = selectedDomains.isNotEmpty(),
+                    enabled = selectedDomains.value.isNotEmpty(),
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    val count = selectedDomains.sumOf { domainCounts[it] ?: 0 }
+                    val count = selectedDomains.value.sumOf { domainCounts[it] ?: 0 }
                     Text(stringResource(R.string.delete_confirm) + " ($count)")
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    updateShowDeleteDialog(false)
+                    showDeleteDialog.value = false
                 }) {
                     Text(stringResource(R.string.cancel))
                 }
@@ -364,7 +424,7 @@ fun SettingsScreen(
                     )
                 }
                 OutlinedButton(
-                    onClick = { updateShowDeleteDialog(true) },
+                    onClick = { showDeleteDialog.value = true },
                     enabled = domainCounts.isNotEmpty(),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -533,7 +593,7 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Bold
                 )
                 
-                val context = androidx.compose.ui.platform.LocalContext.current
+                val context = LocalContext.current
                 val packageInfo = remember {
                     runCatching {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -549,8 +609,34 @@ fun SettingsScreen(
                 Text(
                     text = "גרסה $versionName",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.clickable {
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastClickTime.longValue > 2000) {
+                            devClickCount.intValue = 1
+                        } else {
+                            devClickCount.intValue++
+                        }
+                        lastClickTime.longValue = currentTime
+                        
+                        if (devClickCount.intValue >= 8 && !isDeveloper) {
+                            showDevLoginDialog.value = true
+                            devClickCount.intValue = 0
+                        }
+                    }
                 )
+
+                if (isDeveloper) {
+                    Text(
+                        text = "מצב מפתחים פעיל",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                    TextButton(onClick = { onDeveloperModeToggle(false) }) {
+                        Text("ביטול מצב מפתחים", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
         }
     }

@@ -36,6 +36,7 @@ import com.example.recepy.ui.screens.MainScreen
 import com.example.recepy.ui.screens.RecipeDetailScreen
 import com.example.recepy.ui.screens.SettingsScreen
 import com.example.recepy.ui.screens.SplashScreen
+import com.example.recepy.ui.screens.DeveloperScreen
 import com.example.recepy.ui.theme.RecepyTheme
 import com.example.recepy.viewmodel.MainViewModel
 import com.example.recepy.viewmodel.RecipeDetailViewModel
@@ -196,6 +197,7 @@ fun RecepyApp(
     val isSaved by detailViewModel.isSaved.collectAsState()
     val detailMessages by detailViewModel.messages.collectAsState(initial = "")
     val themeMode by settingsViewModel.themeMode.collectAsState()
+    val isDeveloper by settingsViewModel.isDeveloper.collectAsState()
 
     val homeSnackbarHostState = remember { SnackbarHostState() }
     val detailSnackbarHostState = remember { SnackbarHostState() }
@@ -228,11 +230,16 @@ fun RecepyApp(
                 filteredRecipes = filteredRecipes, searchQuery = searchQuery,
                 onSearchQueryChanged = mainViewModel::onSearchQueryChanged,
                 onSettingsClick = { navController.navigate("settings") },
+                onDeveloperToolClick = { navController.navigate("developer") },
                 onSavedRecipeClick = { recipeId -> navController.navigate("detail/$recipeId") },
                 onDeleteRecipe = mainViewModel::deleteRecipe, sortByAlpha = sortByAlpha,
                 onSortToggle = mainViewModel::toggleSort, snackbarHostState = homeSnackbarHostState,
+                isDeveloper = isDeveloper,
                 viewModel = mainViewModel
             )
+        }
+        composable("developer") {
+            DeveloperScreen(onBack = { navController.popBackStack() })
         }
         composable("settings") {
             val domainCounts by settingsViewModel.domainCounts.collectAsState()
@@ -270,6 +277,8 @@ fun RecepyApp(
                 onCheckForUpdates = { mainViewModel.loadSeedRecipes() },
                 onCheckAppUpdate = { mainViewModel.checkForAppUpdate(context) },
                 downloadProgress = downloadProgress,
+                isDeveloper = isDeveloper,
+                onDeveloperModeToggle = { settingsViewModel.setDeveloperMode(it) },
                 snackbarHostState = settingsSnackbarHostState
             )
         }
