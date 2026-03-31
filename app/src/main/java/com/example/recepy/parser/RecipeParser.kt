@@ -104,13 +104,33 @@ class RecipeParser {
             ?.let { toAbsUrl(document, it) }
             ?: fallbackImage(document)
 
-        val ingredients = extractListNearKeywords(document, INGREDIENT_KEYWORDS)
+        // Improved heuristic for ingredients: Look for common classes/IDs or nearby keywords
+        val ingredients = extractListFromComplexSite(document, INGREDIENT_KEYWORDS, INGREDIENT_SELECTORS)
+            .ifEmpty { extractListNearKeywords(document, INGREDIENT_KEYWORDS) }
             .ifEmpty { normalize(document.select("ul li").map { it.text() }.take(25)) }
 
-        val steps = extractListNearKeywords(document, INSTRUCTION_KEYWORDS)
+        // Improved heuristic for steps
+        val steps = extractListFromComplexSite(document, INSTRUCTION_KEYWORDS, INSTRUCTION_SELECTORS)
+            .ifEmpty { extractListNearKeywords(document, INSTRUCTION_KEYWORDS) }
             .ifEmpty { normalize(document.select("ol li").map { it.text() }.take(30)) }
 
         return ParsedRecipe(title, image, ingredients, steps)
+    }
+
+    private fun extractListFromComplexSite(document: Document, keywords: List<String>, selectors: List<String>): List<String> {
+        // Try known selectors first (Foody, Hashaf Halavan etc often use specific classes)
+        for (selector in selectors) {
+            val elements = document.select(selector)
+            if (elements.isNotEmpty()) {
+                val items = elements.map { it.text().trim() }.filter { it.isNotBlank() }
+                // Use keywords to verify we are in the right place if the selector is generic
+                val containerText = elements.first()?.parents()?.firstOrNull { it.tagName() == "div" || it.tagName() == "section" }?.text()?.take(500).orEmpty()
+                if (items.size >= 2 && (selectors.size < 5 || hasKeyword(containerText, keywords.map { it.lowercase() }))) {
+                    return normalize(items)
+                }
+            }
+        }
+        return emptyList()
     }
 
     private fun findRecipe(element: JsonElement?): JsonObject? {
@@ -206,14 +226,15 @@ class RecipeParser {
             var sibling = heading.nextElementSibling()
             // Look ahead up to 3 siblings for a list or group of paragraphs
             repeat(3) {
-                if (sibling != null) {
-                    val items = sibling!!.select("li").map { it.text() }
+                val currentSibling = sibling
+                if (currentSibling != null) {
+                    val items = currentSibling.select("li").map { it.text() }
                         .ifEmpty { 
                             // If no <li>, check if it's a div containing many paragraphs
-                            sibling!!.select("p").map { it.text() }.filter { it.length > 5 }
+                            currentSibling.select("p").map { it.text() }.filter { it.length > 5 }
                         }
                     if (items.size >= 2) return normalize(items)
-                    sibling = sibling!!.nextElementSibling()
+                    sibling = currentSibling.nextElementSibling()
                 }
             }
         }
@@ -255,8 +276,20 @@ class RecipeParser {
     private fun normalize(lines: List<String>): List<String> {
         return lines.flatMap(::splitText)
             .map { Jsoup.parse(it).text() }
-            .map { it.replace(Regex("^[\\-•·\\d\\.\\)\\s]+"), "").trim() }
-            .filter { it.length > 1 }
+            .map { line ->
+                // Remove list markers like "1. ", "2) ", "• ", "- "
+                // Be careful not to remove quantities like "1/2", "1.5" or "1 קילו"
+                line.replace(Regex("^([•\\-*·]\\s*|\\d+[.)]\\s+)"), "").trim()
+            }
+            // Remove common "UI" text that might get sucked in
+            .filter { line ->
+                val lowered = line.lowercase()
+                line.length > 1 && 
+                !lowered.contains("הוסף לסל") && 
+                !lowered.contains("להדפסה") &&
+                !lowered.contains("לשתף") &&
+                !lowered.contains("בואו לבקר")
+            }
             .distinct()
             .take(80)
     }
@@ -326,7 +359,7 @@ class RecipeParser {
     private fun cleanPastedLine(line: String): String {
         return line
             .replace(Regex("^[•\\-*\\s]+"), "")
-            .replace(Regex("^\\d+[\\).:\\-\\s]+"), "")
+            .replace(Regex("^\\d+[).:\\-\\s]+"), "")
             .trim()
     }
 
@@ -353,11 +386,23 @@ class RecipeParser {
 
     private companion object {
         val INGREDIENT_KEYWORDS = listOf(
-            "ingredients", "ingredient", "מצרכים", "רכיבים", "מה צריך", "החומרים", "המרכיבים"
+            "ingredients", "ingredient", "מצרכים", "רכיבים", "מה צריך", "החומרים", "המרכיבים", "מה להכין"
         )
         val INSTRUCTION_KEYWORDS = listOf(
             "instructions", "instruction", "directions", "method", "preparation",
-            "אופן הכנה", "הוראות הכנה", "שלבי הכנה", "איך מכינים", "הכנה", "תהליך ההכנה"
+            "אופן הכנה", "הוראות הכנה", "שלבי הכנה", "איך מכינים", "הכנה", "תהליך ההכנה", "שלבי ההכנה"
+        )
+        val INGREDIENT_SELECTORS = listOf(
+            ".ingredients-list li", ".recipe-ingredients li", "[class*=ingredients] li", 
+            ".ingredient-item", ".ingredient", ".recipe__ingredients-list li",
+            "div[class*=ingredients] p", "section[id*=ingredients] li",
+            ".chef-ingredients li", ".foody-ingredients li"
+        )
+        val INSTRUCTION_SELECTORS = listOf(
+            ".instructions-list li", ".recipe-instructions li", "[class*=instructions] li",
+            ".instruction-item", ".step", ".recipe__instructions-list li",
+            "div[class*=steps] p", "section[id*=instructions] p", "div[class*=method] p",
+            ".preparation-steps li", ".recipe-steps p"
         )
         val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients")
         val TEXT_INSTRUCTION_HEADERS = listOf(

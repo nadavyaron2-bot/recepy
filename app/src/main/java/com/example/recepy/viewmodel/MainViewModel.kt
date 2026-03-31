@@ -144,12 +144,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val filtered = if (query.isBlank()) {
             recipes
         } else {
+            val queryWords = query.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
             if (ingredientsMode) {
                 recipes.filter { recipe ->
-                    recipe.ingredients.any { it.contains(query, true) } || recipe.title.contains(query, true)
+                    queryWords.all { word ->
+                        recipe.title.contains(word, true) || recipe.ingredients.any { it.contains(word, true) }
+                    }
                 }
             } else {
-                recipes.filter { it.title.contains(query, true) }
+                recipes.filter { recipe ->
+                    queryWords.all { word -> recipe.title.contains(word, true) }
+                }
             }
         }
         

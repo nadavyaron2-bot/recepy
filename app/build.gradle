@@ -7,14 +7,14 @@ plugins {
 
 android {
     namespace 'com.example.recepy'
-    compileSdk 36
+    compileSdk libs.versions.compileSdk.get().toInteger()
 
     defaultConfig {
         applicationId "com.example.recepy"
         minSdk 26
-        targetSdk 36
-        versionCode 11
-        versionName "1.0.9"
+        targetSdk libs.versions.targetSdk.get().toInteger()
+        versionCode 12
+        versionName "1.1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -55,9 +55,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose true
     }
@@ -92,7 +89,7 @@ dependencies {
     androidTestImplementation libs.androidx.compose.ui.test.junit4
     debugImplementation libs.androidx.compose.ui.tooling
     debugImplementation libs.androidx.compose.ui.test.manifest
-    implementation("androidx.glance:glance-appwidget:1.1.1")
-    implementation("androidx.glance:glance-material3:1.1.1")
-    implementation("androidx.core:core-splashscreen:1.2.0")
+    implementation libs.androidx.glance.appwidget
+    implementation libs.androidx.glance.material3
+    implementation libs.androidx.core.splashscreen
 }
