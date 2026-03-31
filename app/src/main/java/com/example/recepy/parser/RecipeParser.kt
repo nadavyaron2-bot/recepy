@@ -386,27 +386,28 @@ class RecipeParser {
 
     private companion object {
         val INGREDIENT_KEYWORDS = listOf(
-            "ingredients", "ingredient", "מצרכים", "רכיבים", "מה צריך", "החומרים", "המרכיבים", "מה להכין"
+            "ingredients", "ingredient", "מצרכים", "רכיבים", "מה צריך", "החומרים", "המרכיבים", "מה להכין", "לבצק", "למילוי", "לציפוי"
         )
         val INSTRUCTION_KEYWORDS = listOf(
             "instructions", "instruction", "directions", "method", "preparation",
-            "אופן הכנה", "הוראות הכנה", "שלבי הכנה", "איך מכינים", "הכנה", "תהליך ההכנה", "שלבי ההכנה"
+            "אופן הכנה", "הוראות הכנה", "שלבי הכנה", "איך מכינים", "הכנה", "תהליך ההכנה", "שלבי ההכנה", "אופן ההכנה"
         )
         val INGREDIENT_SELECTORS = listOf(
             ".ingredients-list li", ".recipe-ingredients li", "[class*=ingredients] li", 
             ".ingredient-item", ".ingredient", ".recipe__ingredients-list li",
             "div[class*=ingredients] p", "section[id*=ingredients] li",
-            ".chef-ingredients li", ".foody-ingredients li"
+            ".chef-ingredients li", ".foody-ingredients li", ".recipe-ingredients p",
+            ".ingredients_list li", ".ingredients li"
         )
         val INSTRUCTION_SELECTORS = listOf(
             ".instructions-list li", ".recipe-instructions li", "[class*=instructions] li",
             ".instruction-item", ".step", ".recipe__instructions-list li",
             "div[class*=steps] p", "section[id*=instructions] p", "div[class*=method] p",
-            ".preparation-steps li", ".recipe-steps p"
+            ".preparation-steps li", ".recipe-steps p", ".instruction p", ".steps li"
         )
-        val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients")
+        val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients", "לבצק", "למילוי")
         val TEXT_INSTRUCTION_HEADERS = listOf(
-            "הוראות", "אופן הכנה", "הכנה", "איך מכינים", "instructions", "directions"
+            "הוראות", "אופן הכנה", "הכנה", "איך מכינים", "instructions", "directions", "אופן ההכנה"
         )
         val TITLE_KEYWORDS = listOf("שם", "title", "recipe", "מתכון")
     }
