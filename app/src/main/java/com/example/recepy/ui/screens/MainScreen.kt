@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -94,6 +95,7 @@ fun MainScreen(
     searchQuery: String,
     onSearchQueryChanged: (String) -> Unit,
     onSettingsClick: () -> Unit,
+    onGroupsClick: () -> Unit,
     onSavedRecipeClick: (Long) -> Unit,
     onDeleteRecipe: (Long) -> Unit,
     sortByAlpha: Boolean,
@@ -128,7 +130,6 @@ fun MainScreen(
     val lastCookedRecipe by viewModel.lastCookedRecipe.collectAsState()
     val searchByIngredients by viewModel.searchByIngredients.collectAsState()
     val shoppingListItems by viewModel.shoppingList.collectAsState()
-    val suggestedMakoSearch by viewModel.suggestMakoSearch.collectAsState()
     val context = LocalContext.current
 
     val prefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
@@ -168,6 +169,9 @@ fun MainScreen(
                 CenterAlignedTopAppBar(
                     title = { Text(text = stringResource(id = R.string.top_bar_title)) },
                     actions = {
+                        IconButton(onClick = { onGroupsClick() }) {
+                            Icon(Icons.Default.Group, contentDescription = "קבוצות")
+                        }
                         IconButton(onClick = { viewModel.setShowShoppingList(true) }) {
                             BadgedBox(
                                 badge = { if (shoppingListItems.isNotEmpty()) Badge { Text(shoppingListItems.size.toString()) } }
@@ -372,20 +376,34 @@ fun MainScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(text = stringResource(id = R.string.no_search_results))
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "לא נמצאו תוצאות ל-\"$searchQuery\"",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "אולי תרצה שנחפש עבורך ברשת?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         
-                        if (suggestedMakoSearch != null) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            TextButton(
-                                onClick = {
-                                    viewModel.extractRecipe(suggestedMakoSearch)
-                                },
-                                colors = ButtonDefaults.textButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                            ) {
-                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("חפש וחלץ את \"$suggestedMakoSearch\"")
-                            }
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        Button(
+                            onClick = { viewModel.extractRecipe(searchQuery) },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Default.AutoFixHigh, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("חפש וחלץ מתכון באופן אוטומטי")
                         }
                     }
                 } else {
@@ -750,11 +768,15 @@ fun RecipeCardItem(
                         onClick = { onToggleFavorite(recipe) },
                         modifier = Modifier.size(24.dp).padding(start = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = if (recipe.isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,
-                            contentDescription = "מועדף",
-                            tint = if (recipe.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
+                        if (recipe.id == -2L) {
+                            Icon(Icons.Default.Group, contentDescription = "מתכון משותף", tint = MaterialTheme.colorScheme.primary)
+                        } else {
+                            Icon(
+                                imageVector = if (recipe.isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,
+                                contentDescription = "מועדף",
+                                tint = if (recipe.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))

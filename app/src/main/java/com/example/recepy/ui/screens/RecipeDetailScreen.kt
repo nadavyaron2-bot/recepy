@@ -118,6 +118,41 @@ fun RecipeDetailScreen(
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
+    var showGroupShareDialog by remember { mutableStateOf(false) }
+    val groups by viewModel.groups.collectAsState()
+
+    if (showGroupShareDialog) {
+        AlertDialog(
+            onDismissRequest = { showGroupShareDialog = false },
+            title = { Text("שתף לקבוצה") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (groups.isEmpty()) {
+                        Text("לא הצטרפת לאף קבוצה עדיין. ניתן להצטרף ממסך הקבוצות.")
+                    } else {
+                        groups.forEach { group ->
+                            Button(
+                                onClick = {
+                                    recipe?.let { viewModel.shareRecipeToGroup(it, group["id"] as String) }
+                                    showGroupShareDialog = false
+                                    Toast.makeText(context, "שותף לקבוצה ${group["name"]}!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Group, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(group["name"] as String)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showGroupShareDialog = false }) { Text("ביטול") } }
+        )
+    }
+
+    fun setShowGroupShareDialog(show: Boolean) { showGroupShareDialog = show }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
             Scaffold(
@@ -148,14 +183,15 @@ fun RecipeDetailScreen(
                                     Toast.makeText(context, "מכין את התמונה...", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                            onEditStart = { isEditing = true },
-                            onCookingModeStart = { updateShowCookingMode(true) },
-                            onOpenSource = { uriHandler.openUri(it) },
-                            sourceUrl = recipe.sourceUrl,
-                            scrollBehavior = scrollBehavior
-                        )
-                    }
-                },
+                                    onEditStart = { isEditing = true },
+                                    onCookingModeStart = { updateShowCookingMode(true) },
+                                    onShareToGroup = { setShowGroupShareDialog(true) },
+                                    onOpenSource = { uriHandler.openUri(it) },
+                                    sourceUrl = recipe.sourceUrl,
+                                    scrollBehavior = scrollBehavior
+                                )
+                            }
+                        },
                 bottomBar = {
                     Column {
                         AnimatedVisibility(
@@ -311,6 +347,7 @@ fun RecipeDetailScreen(
                                 },
                                 onEditStart = { isEditing = true },
                                 onCookingModeStart = { updateShowCookingMode(true) },
+                                onShareToGroup = { setShowGroupShareDialog(true) },
                                 onOpenSource = { uriHandler.openUri(it) },
                                 sourceUrl = recipe.sourceUrl,
                                 scrollBehavior = null
@@ -967,6 +1004,7 @@ fun HeaderSection(
     onTitleChange: (String) -> Unit, onImageUrlChange: (String?) -> Unit,
     onBack: () -> Unit, onShare: () -> Unit, onShareImage: () -> Unit,
     onEditStart: () -> Unit, onCookingModeStart: () -> Unit,
+    onShareToGroup: () -> Unit,
     onOpenSource: (String) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
@@ -1079,6 +1117,11 @@ fun HeaderSection(
                             text = { Text("שתף כתמונה") },
                             onClick = { onShareImage(); showShareOptions = false },
                             leadingIcon = { Icon(Icons.Default.Image, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("שתף לקבוצה") },
+                            onClick = { onShareToGroup(); showShareOptions = false },
+                            leadingIcon = { Icon(Icons.Default.Group, null) }
                         )
                     }
                 }

@@ -169,9 +169,28 @@ class RecipeParser {
 
     private fun extractTitle(recipe: JsonObject, document: Document): String {
         val name = recipe.get("name")?.takeIf { it.isJsonPrimitive }?.asString?.trim().orEmpty()
-        return if (name.isNotBlank()) name
+        val rawTitle = if (name.isNotBlank()) name
         else document.selectFirst("h1")?.text()?.takeIf { it.isNotBlank() }
             ?: document.title().ifBlank { "מתכון ללא כותרת" }
+        return cleanTitle(rawTitle)
+    }
+
+    private fun cleanTitle(title: String): String {
+        var t = title.trim()
+        val suffixes = listOf(" - אוכל טוב", " | mako", " | Foody", " - Foody", " - וואלה! אוכל", " | השולחן")
+        for (suffix in suffixes) {
+            val idx = t.lastIndexOf(suffix, ignoreCase = true)
+            if (idx != -1) {
+                t = t.substring(0, idx)
+            }
+        }
+        t = t.replace(Regex("^מתכון (של |ל-)?"), "")
+        t = t.replace(Regex("^מתכון: "), "")
+        if (t.startsWith("מתכון ל")) {
+            val potential = t.substring(7).trim()
+            if (potential.length > 2) t = potential
+        }
+        return t.trim().removePrefix("-").trim()
     }
 
     private fun readStrings(element: JsonElement?): List<String> {
@@ -181,10 +200,16 @@ class RecipeParser {
             element.isJsonArray -> element.asJsonArray.flatMap { readStrings(it) }
             element.isJsonObject -> {
                 val obj = element.asJsonObject
-                listOf("text", "name", "value", "description")
-                    .firstNotNullOfOrNull { key -> obj.get(key)?.takeIf { it.isJsonPrimitive }?.asString }
-                    ?.let(::splitText)
-                    .orEmpty()
+                val name = obj.get("name")?.takeIf { it.isJsonPrimitive }?.asString
+                
+                if (obj.get("@type")?.asString?.contains("Section") == true && !name.isNullOrBlank()) {
+                    listOf("$name:") + (readStrings(obj.get("itemListElement")) + readStrings(obj.get("recipeIngredient"))).filter { it != name }
+                } else {
+                    listOf("text", "name", "value", "description")
+                        .firstNotNullOfOrNull { key -> obj.get(key)?.takeIf { it.isJsonPrimitive }?.asString }
+                        ?.let(::splitText)
+                        .orEmpty()
+                }
             }
             else -> emptyList()
         }
@@ -198,8 +223,16 @@ class RecipeParser {
             element.isJsonObject -> {
                 val obj = element.asJsonObject
                 val text = obj.get("text")?.takeIf { it.isJsonPrimitive }?.asString
-                if (!text.isNullOrBlank()) splitText(text)
-                else readInstructions(obj.get("itemListElement")) + readInstructions(obj.get("steps"))
+                val name = obj.get("name")?.takeIf { it.isJsonPrimitive }?.asString
+                val type = obj.get("@type")?.asString.orEmpty()
+                
+                if (type.contains("Section") && !name.isNullOrBlank()) {
+                    listOf("$name:") + (readInstructions(obj.get("itemListElement")) + readInstructions(obj.get("steps"))).filter { it != name }
+                } else if (!text.isNullOrBlank()) {
+                    splitText(text)
+                } else {
+                    readInstructions(obj.get("itemListElement")) + readInstructions(obj.get("steps"))
+                }
             }
             else -> emptyList()
         }
@@ -279,7 +312,7 @@ class RecipeParser {
             .map { line ->
                 // Remove list markers like "1. ", "2) ", "• ", "- "
                 // Be careful not to remove quantities like "1/2", "1.5" or "1 קילו"
-                line.replace(Regex("^([•\\-*·]\\s*|\\d+[.)]\\s+)"), "").trim()
+                line.replace(Regex("^([•\\-*·●▢☐]\\s*|\\d+[.)]\\s+)"), "").trim()
             }
             // Remove common "UI" text that might get sucked in
             .filter { line ->
@@ -288,7 +321,16 @@ class RecipeParser {
                 !lowered.contains("הוסף לסל") && 
                 !lowered.contains("להדפסה") &&
                 !lowered.contains("לשתף") &&
-                !lowered.contains("בואו לבקר")
+                !lowered.contains("בואו לבקר") &&
+                !lowered.contains("הוסף למצרכים") &&
+                !lowered.contains("צילום:") &&
+                !lowered.contains("וידאו:") &&
+                !lowered.contains("קרא עוד") &&
+                !lowered.contains("מתכונים נוספים") &&
+                !lowered.contains("עוד בנושא") &&
+                !lowered.contains("שלחו לנו") &&
+                !lowered.contains("הצטרפו ל") &&
+                !lowered.contains("עקבו אחרינו")
             }
             .distinct()
             .take(80)
@@ -296,7 +338,7 @@ class RecipeParser {
 
     private fun splitText(value: String): List<String> {
         return value.replace("\r", "\n")
-            .split("\n", "•", "●", "|", ";")
+            .split("\n", "•", "●", "○", "·", "|", ";", "▢", "☐")
             .map { it.trim() }
             .filter { it.isNotBlank() }
     }
@@ -407,14 +449,15 @@ class RecipeParser {
             "div[class*=recipeIngredients] li", "div[class*=recipe_ingredients] li",
             "ul[class*=ingredients] li", "ol[class*=ingredients] li",
             ".recipe-body .ingredients p",
-            // Specific for Israeli sites (Mako, Walla, etc.)
+            // Specific for Israeli sites (Mako, Walla, Foody, etc.)
             ".ingredients-list .ingredient", ".recipe-ingredients .ingredient",
             ".recipe_ingredients_list li", ".ingredients_container li",
             ".ingredients-table tr", ".recipe-ingred-list li",
             ".recipe-ingredients-item", ".ingredient-list-item",
             "div.ingredients p", "div.ingredients div",
             "ul.ingredients li span", "li[itemprop=recipeIngredient]",
-            ".article-content .ingredients li", ".recipe_ingredients .ing_item"
+            ".article-content .ingredients li", ".recipe_ingredients .ing_item",
+            ".ingredient-wrap", ".ingredient-name", ".recipe-ingredients .ingredient-text"
         )
         val INSTRUCTION_SELECTORS = listOf(
             ".recipe-instructions li", ".instructions-list li", ".recipe-instructions p",
@@ -430,12 +473,13 @@ class RecipeParser {
             "div[class*=recipeSteps] p", "div[class*=recipe_steps] p",
             "ul[class*=instructions] li", "ol[class*=instructions] li",
             "ul[class*=steps] li", "ol[class*=steps] li",
-            // Specific for Israeli sites (Mako, Walla, etc.)
+            // Specific for Israeli sites (Mako, Walla, Foody, etc.)
             ".recipe-steps .step", ".recipe_preparation_list li",
             ".preparation-container p", ".recipe-method p",
             ".recipe-directions p", ".instructions-content p",
             ".recipe-instructions-item", ".step-list-item",
-            ".article-content .instructions p", ".recipe_instructions .step_item"
+            ".article-content .instructions p", ".recipe_instructions .step_item",
+            ".recipe-preparation .step", ".method-step", ".recipe-step-text"
         )
         val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients", "לבצק", "למילוי", "המרכיבים")
         val TEXT_INSTRUCTION_HEADERS = listOf(

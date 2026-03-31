@@ -33,6 +33,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.recepy.data.preferences.ThemeMode
+import com.example.recepy.ui.screens.GroupsScreen
 import com.example.recepy.ui.screens.MainScreen
 import com.example.recepy.ui.screens.RecipeDetailScreen
 import com.example.recepy.ui.screens.SettingsScreen
@@ -231,6 +232,7 @@ fun RecepyApp(
                 filteredRecipes = filteredRecipes, searchQuery = searchQuery,
                 onSearchQueryChanged = mainViewModel::onSearchQueryChanged,
                 onSettingsClick = { navController.navigate("settings") },
+                onGroupsClick = { navController.navigate("groups") },
                 onDeveloperToolClick = { navController.navigate("developer") },
                 onSavedRecipeClick = { recipeId -> navController.navigate("detail/$recipeId") },
                 onDeleteRecipe = mainViewModel::deleteRecipe, sortByAlpha = sortByAlpha,
@@ -241,6 +243,9 @@ fun RecepyApp(
         }
         composable("developer") {
             DeveloperScreen(onBack = { navController.popBackStack() }, viewModel = mainViewModel)
+        }
+        composable("groups") {
+            GroupsScreen(onBack = { navController.popBackStack() }, viewModel = mainViewModel)
         }
         composable("settings") {
             val domainCounts by settingsViewModel.domainCounts.collectAsState()
