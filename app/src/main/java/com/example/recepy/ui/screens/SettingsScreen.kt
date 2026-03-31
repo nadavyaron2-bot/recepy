@@ -578,39 +578,39 @@ fun SettingsScreen(
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
 
-            // ── Bug Report ──────────────────────────────────────────────────
-            val bugDescription = remember { mutableStateOf("") }
+            // ── Bug Report / Suggestion ──────────────────────────────────────────
+            val reportContent = remember { mutableStateOf("") }
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "דיווח על באג",
+                    text = "דיווח על באג / הצעה לשיפור",
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = "מצאתם בעיה? ספרו לנו ונתקן אותה בהקדם.",
+                    text = "מצאתם בעיה או שיש לכם רעיון לשיפור? ספרו לנו!",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
-                    value = bugDescription.value,
-                    onValueChange = { bugDescription.value = it },
-                    label = { Text("תיאור הבאג") },
+                    value = reportContent.value,
+                    onValueChange = { reportContent.value = it },
+                    label = { Text("תיאור הבאג או ההצעה") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
                 OutlinedButton(
                     onClick = {
-                        if (bugDescription.value.isNotBlank()) {
-                            onReportBug(bugDescription.value)
-                            bugDescription.value = ""
+                        if (reportContent.value.isNotBlank()) {
+                            onReportBug(reportContent.value)
+                            reportContent.value = ""
                         }
                     },
                     modifier = Modifier.align(Alignment.End),
-                    enabled = bugDescription.value.isNotBlank()
+                    enabled = reportContent.value.isNotBlank()
                 ) {
-                    Text("שלח דיווח")
+                    Text("שלח דיווח/הצעה")
                 }
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
@@ -648,7 +648,10 @@ fun SettingsScreen(
                     text = "גרסה $versionName",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
+                    ) {
                         val currentTime = System.currentTimeMillis()
                         if (currentTime - lastClickTime.longValue > 2000) {
                             devClickCount.intValue = 1

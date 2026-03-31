@@ -82,23 +82,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
 
     fun reportBug(bug: String) {
-        val newList = _reportedBugs.value + bug
-        _reportedBugs.value = newList
-        prefs.edit { putStringSet("reported_bugs", newList.toSet()) }
+        viewModelScope.launch {
+            val newList = _reportedBugs.value + bug
+            _reportedBugs.value = newList
+            prefs.edit { putStringSet("reported_bugs", newList.toSet()) }
+            
+            // Notification for Developer mode - simulation for now
+            // Sync with "Developer" (Email Intent / Server Simulation)
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    // Logic to send to developer would go here.
+                }
+            }
+        }
     }
 
     private val _suggestedRecipesForDev = MutableStateFlow<List<String>>(
         prefs.getStringSet("suggested_recipes", emptySet())?.toList() ?: emptyList()
     )
     val suggestedRecipesForDev: StateFlow<List<String>> = _suggestedRecipesForDev.asStateFlow()
-
-    fun addSuggestedRecipe(name: String) {
-        if (!_suggestedRecipesForDev.value.contains(name)) {
-            val newList = _suggestedRecipesForDev.value + name
-            _suggestedRecipesForDev.value = newList
-            prefs.edit { putStringSet("suggested_recipes", newList.toSet()) }
-        }
-    }
 
     private val _checkedIngredientsMap = MutableStateFlow<Map<Long, Set<Int>>>(emptyMap())
     val checkedIngredientsMap: StateFlow<Map<Long, Set<Int>>> = _checkedIngredientsMap.asStateFlow()
@@ -206,7 +208,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Logic for Mako search suggestion
         if (query.isNotBlank() && finalSorted.isEmpty()) {
             _suggestMakoSearch.value = query
-            addSuggestedRecipe(query)
         } else {
             _suggestMakoSearch.value = null
         }
@@ -426,13 +427,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (input.startsWith("http")) {
                         repository.extractRecipeFromUrl(input)
                     } else {
-                        // Mako Search Logic
+                        // Mako Search Logic - Better bot protection headers
                         val searchUrl = "https://www.google.com/search?q=site:mako.co.il+מתכון+$input"
-                        val doc = withContext(Dispatchers.IO) {
-                            org.jsoup.Jsoup.connect(searchUrl)
-                                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-                                .get()
-                        }
+                        val doc = org.jsoup.Jsoup.connect(searchUrl)
+                            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+                            .header("Accept-Language", "he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7")
+                            .referrer("https://www.google.com/")
+                            .get()
+
                         val link = doc.select("a")
                             .map { it.attr("href") }
                             .firstOrNull { it.contains("mako.co.il/food-recipes/recipes/") }

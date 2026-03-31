@@ -2,14 +2,13 @@
 
 import android.content.Context
 import android.content.Intent
-import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -49,6 +48,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -321,10 +327,10 @@ fun MainScreen(
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text("לא נמצא מתכון מתאים באוסף שלך.", style = MaterialTheme.typography.bodyMedium)
                             TextButton(onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, "https://www.google.com/search?q=$suggestedMakoSearch".toUri())
-                                context.startActivity(intent)
+                                onUrlChanged(suggestedMakoSearch!!)
+                                onExtractClick()
                             }) {
-                                Text("חפש \"$suggestedMakoSearch\"")
+                                Text("חפש וחלץ את \"$suggestedMakoSearch\" ממאקו")
                             }
                         }
                     }
@@ -346,9 +352,42 @@ fun MainScreen(
                     }
                 }
 
+                if (suggestedMakoSearch != null) {
+                    TextButton(
+                        onClick = {
+                            onUrlChanged(suggestedMakoSearch!!)
+                            onExtractClick()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("נסה לחפש את \"$suggestedMakoSearch\" במאקו")
+                    }
+                }
+
                 if (noResults) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Text(text = stringResource(id = R.string.no_search_results))
+                        
+                        if (suggestedMakoSearch != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            TextButton(
+                                onClick = {
+                                    onUrlChanged(suggestedMakoSearch!!)
+                                    onExtractClick()
+                                },
+                                colors = ButtonDefaults.textButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                            ) {
+                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("חפש את \"$suggestedMakoSearch\" במאקו")
+                            }
+                        }
                     }
                 } else {
                     LazyColumn(
