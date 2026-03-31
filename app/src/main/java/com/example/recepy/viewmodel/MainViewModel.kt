@@ -107,6 +107,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _updateDownloadUrl = MutableStateFlow<String?>(null)
     val updateDownloadUrl: StateFlow<String?> = _updateDownloadUrl.asStateFlow()
 
+    private val _downloadProgress = MutableStateFlow<Float?>(null)
+    val downloadProgress: StateFlow<Float?> = _downloadProgress.asStateFlow()
+
     private val updateImportPrefs by lazy {
         application.getSharedPreferences("bundled_recipe_import", Context.MODE_PRIVATE)
     }
@@ -223,7 +226,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             val newItems = ingredients.map { ing ->
                 ShoppingItem(
-                    name = scaleNumbersInText(ing, multiplier),
+                    name = scaleNumbersAndPluralize(ing, multiplier),
                     isChecked = false,
                     recipeName = recipeName
                 )
@@ -269,10 +272,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun scaleNumbersInText(text: String, multiplier: Float): String {
+    private fun scaleNumbersAndPluralize(text: String, multiplier: Float): String {
         if (multiplier == 1f) return text
-        val regex = Regex("""\b(\d+(\.\d+)?)\b""")
-        return regex.replace(text) { matchResult ->
+        val numberRegex = Regex("""\b(\d+(\.\d+)?)\b""")
+        
+        val units = listOf(
+            "כפית" to "כפיות",
+            "כף" to "כפות",
+            "כוס" to "כוסות",
+            "חבילה" to "חבילות",
+            "קופסה" to "קופסאות",
+            "קופסא" to "קופסאות",
+            "מיכל" to "מיכלים",
+            "מכל" to "מכלים",
+            "שקית" to "שקיות",
+            "צרור" to "צרורות",
+            "גביע" to "גביעים"
+        )
+
+        var resultText = text
+        val matches = numberRegex.findAll(text).toList()
+        
+        if (matches.isEmpty()) {
+            if (multiplier > 1f) {
+                units.forEach { (singular, plural) ->
+                    if (resultText.contains(singular) && !resultText.contains(plural)) {
+                        resultText = resultText.replace(singular, plural)
+                    }
+                }
+            }
+            val multStr = if (multiplier % 1.0f == 0f) multiplier.toInt().toString() else "%.1f".format(multiplier)
+            return "$multStr x $resultText"
+        }
+
+        val firstNum = matches[0].value.toFloatOrNull() ?: 0f
+        val firstScaled = firstNum * multiplier
+        
+        units.forEach { (singular, plural) ->
+            if (firstScaled == 1f) {
+                if (resultText.contains(plural)) {
+                    resultText = resultText.replace(plural, singular)
+                }
+            } else if (firstScaled > 1f) {
+                if (resultText.contains(singular) && !resultText.contains(plural)) {
+                    resultText = resultText.replace(singular, plural)
+                }
+            }
+        }
+
+        return numberRegex.replace(resultText) { matchResult ->
             val num = matchResult.value.toFloatOrNull() ?: return@replace matchResult.value
             val scaled = num * multiplier
             if (scaled % 1.0f == 0f) scaled.toInt().toString() else "%.1f".format(scaled)
@@ -397,12 +445,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun installUpdate(context: Context, url: String) {
         viewModelScope.launch {
             _appUpdateMessage.value = "מוריד עדכון..."
+            _downloadProgress.value = 0f
             runCatching {
                 withContext(Dispatchers.IO) {
                     val apkFile = java.io.File(context.cacheDir, "update.apk")
-                    java.net.URL(url).openStream().use { input ->
+                    val connection = java.net.URL(url).openConnection()
+                    val totalSize = connection.contentLength.toLong()
+                    
+                    connection.getInputStream().use { input ->
                         apkFile.outputStream().use { output ->
-                            input.copyTo(output)
+                            val buffer = ByteArray(8192)
+                            var bytesRead: Int
+                            var totalRead = 0L
+                            while (input.read(buffer).also { bytesRead = it } != -1) {
+                                output.write(buffer, 0, bytesRead)
+                                totalRead += bytesRead
+                                if (totalSize > 0) {
+                                    _downloadProgress.value = totalRead.toFloat() / totalSize.toFloat()
+                                }
+                            }
                         }
                     }
                     
@@ -420,9 +481,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     context.startActivity(intent)
                 }
                 _appUpdateMessage.value = "הורדה הושלמה"
+                _downloadProgress.value = null
             }.onFailure {
                 it.printStackTrace()
                 _appUpdateMessage.value = "שגיאה בהורדת העדכון"
+                _downloadProgress.value = null
             }
         }
     }

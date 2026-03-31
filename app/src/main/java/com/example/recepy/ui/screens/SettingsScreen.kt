@@ -88,10 +88,14 @@ fun SettingsScreen(
     appUpdateMessage: String? = null,
     onCheckForUpdates: () -> Unit = {},
     onCheckAppUpdate: () -> Unit = {},
+    downloadProgress: Float? = null,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
-    var showDeleteDialog  by remember { mutableStateOf(false) }
-    var selectedDomains   by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedDomains by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    fun updateShowDeleteDialog(show: Boolean) { showDeleteDialog = show }
+    fun updateSelectedDomains(domains: Set<String>) { selectedDomains = domains }
 
     val allDomains = domainCounts.keys.sorted()
 
@@ -101,8 +105,7 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = {
-                showDeleteDialog = false
-                selectedDomains  = emptySet()
+                updateShowDeleteDialog(false)
             },
             title = { Text(stringResource(R.string.delete_by_source_title)) },
             text = {
@@ -143,7 +146,7 @@ fun SettingsScreen(
                         Checkbox(
                             checked = allSelected,
                             onCheckedChange = { checked ->
-                                selectedDomains = if (checked) allDomains.toSet() else emptySet()
+                                updateSelectedDomains(if (checked) allDomains.toSet() else emptySet())
                             }
                         )
                     }
@@ -176,10 +179,10 @@ fun SettingsScreen(
                             Checkbox(
                                 checked = checked,
                                 onCheckedChange = { isChecked ->
-                                    selectedDomains = if (isChecked)
+                                    updateSelectedDomains(if (isChecked)
                                         selectedDomains + domain
                                     else
-                                        selectedDomains - domain
+                                        selectedDomains - domain)
                                 }
                             )
                         }
@@ -192,8 +195,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         onDeleteByDomains(selectedDomains)
-                        showDeleteDialog = false
-                        selectedDomains  = emptySet()
+                        updateShowDeleteDialog(false)
                     },
                     enabled = selectedDomains.isNotEmpty(),
                     colors = ButtonDefaults.textButtonColors(
@@ -206,8 +208,7 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    showDeleteDialog = false
-                    selectedDomains  = emptySet()
+                    updateShowDeleteDialog(false)
                 }) {
                     Text(stringResource(R.string.cancel))
                 }
@@ -363,7 +364,7 @@ fun SettingsScreen(
                     )
                 }
                 OutlinedButton(
-                    onClick = { showDeleteDialog = true },
+                    onClick = { updateShowDeleteDialog(true) },
                     enabled = domainCounts.isNotEmpty(),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -503,6 +504,15 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            downloadProgress?.let { progress ->
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
                 )
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth())

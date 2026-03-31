@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,6 +70,7 @@ import coil.compose.AsyncImage
 import com.example.recepy.R
 import com.example.recepy.data.repository.Recipe
 import com.example.recepy.viewmodel.MainViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -97,12 +99,15 @@ fun MainScreen(
     }
 
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
+    fun updateRecipeToDelete(recipe: Recipe?) { recipeToDelete = recipe }
+
     val showPasteSheet by viewModel.showAddDialog.collectAsState()
     fun setShowPasteSheet(show: Boolean) = viewModel.setShowAddDialog(show)
 
     val showShoppingList by viewModel.showShoppingList.collectAsState()
 
     var isSearchFocused by remember { mutableStateOf(false) }
+    fun updateSearchFocus(focused: Boolean) { isSearchFocused = focused }
 
     val density = LocalDensity.current
     val isKeyboardOpen = WindowInsets.ime.getBottom(density) > 0
@@ -119,11 +124,28 @@ fun MainScreen(
     val prefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
     var useManualInput by remember { mutableStateOf(prefs.getBoolean("use_manual_input", true)) }
 
+    val lazyListState = rememberLazyListState()
+    val isScrollingUp = remember {
+        derivedStateOf {
+            if (lazyListState.isScrollInProgress) {
+                lazyListState.firstVisibleItemIndex == 0 && lazyListState.firstVisibleItemScrollOffset == 0
+            } else {
+                true
+            }
+        }
+    }
+    val showScrollToTop by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 2
+        }
+    }
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         modifier = modifier,
         topBar = {
             AnimatedVisibility(
-                visible = !compactSearchMode,
+                visible = !compactSearchMode && isScrollingUp.value,
                 enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
                 exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
             ) {
@@ -147,6 +169,27 @@ fun MainScreen(
                 )
             }
         },
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = showScrollToTop,
+                enter = scaleIn(),
+                exit = scaleOut()
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            lazyListState.animateScrollToItem(0)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = CircleShape,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Scroll to top")
+                }
+            }
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -156,35 +199,41 @@ fun MainScreen(
                 .padding(horizontal = 20.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (!compactSearchMode) {
-                OutlinedTextField(
-                    value = urlInput,
-                    onValueChange = onUrlChanged,
-                    label = { Text(text = stringResource(id = R.string.url_label)) },
-                    placeholder = { Text(text = stringResource(id = R.string.url_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-                )
+            AnimatedVisibility(
+                visible = !compactSearchMode && isScrollingUp.value,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    OutlinedTextField(
+                        value = urlInput,
+                        onValueChange = onUrlChanged,
+                        label = { Text(text = stringResource(id = R.string.url_label)) },
+                        placeholder = { Text(text = stringResource(id = R.string.url_hint)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
+                    )
 
-                OutlinedButton(
-                    onClick = { setShowPasteSheet(true) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "יצירת מתכון חדש / הדבקה מטקסט")
-                }
+                    OutlinedButton(
+                        onClick = { setShowPasteSheet(true) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "יצירת מתכון חדש / הדבקה מטקסט")
+                    }
 
-                Button(
-                    onClick = onExtractClick,
-                    enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(text = stringResource(id = R.string.loading_recipe))
-                    } else {
-                        Text(text = stringResource(id = R.string.extract_recipe))
+                    Button(
+                        onClick = onExtractClick,
+                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(text = stringResource(id = R.string.loading_recipe))
+                        } else {
+                            Text(text = stringResource(id = R.string.extract_recipe))
+                        }
                     }
                 }
             }
@@ -204,7 +253,7 @@ fun MainScreen(
                         onValueChange = onSearchQueryChanged,
                         modifier = Modifier
                             .weight(1f)
-                            .onFocusChanged { isSearchFocused = it.isFocused },
+                            .onFocusChanged { updateSearchFocus(it.isFocused) },
                         singleLine = true,
                         placeholder = {
                             AnimatedContent(
@@ -266,7 +315,11 @@ fun MainScreen(
                         Text(text = stringResource(id = R.string.no_search_results))
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
 
                         if (lastCookedRecipe != null && searchQuery.isBlank() && selectedTagFilters.isEmpty()) {
                             item {
@@ -281,7 +334,7 @@ fun MainScreen(
                                     recipe = lastCookedRecipe!!,
                                     onClick = onSavedRecipeClick,
                                     onToggleFavorite = onToggleFavorite,
-                                    onLongClick = { recipeToDelete = it }
+                                    onLongClick = { updateRecipeToDelete(it) }
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
@@ -298,7 +351,7 @@ fun MainScreen(
                                 recipe = recipe,
                                 onClick = onSavedRecipeClick,
                                 onToggleFavorite = onToggleFavorite,
-                                onLongClick = { recipeToDelete = it }
+                                onLongClick = { updateRecipeToDelete(it) }
                             )
                         }
                     }
@@ -478,6 +531,7 @@ fun MainScreen(
             var manualIngredients by rememberSaveable { mutableStateOf("") }
             var manualSteps by rememberSaveable { mutableStateOf("") }
             var pastedRecipeText by rememberSaveable { mutableStateOf("") }
+            fun updatePastedText(text: String) { pastedRecipeText = text }
             var selectedSheetTags by remember { mutableStateOf(setOf<String>()) }
             val scrollState = rememberScrollState()
             var manualImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
@@ -546,8 +600,8 @@ fun MainScreen(
                     OutlinedTextField(value = manualSteps, onValueChange = { manualSteps = it }, label = { Text("הוראות הכנה (שורה לכל שלב)") }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 5)
                     Button(onClick = { viewModel.saveManualRecipe(manualTitle, manualIngredients, manualSteps, selectedSheetTags.toList(), manualImageUrl); setShowPasteSheet(false) }, modifier = Modifier.fillMaxWidth(), enabled = manualTitle.isNotBlank() || manualIngredients.isNotBlank()) { Icon(Icons.Default.Save, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text(text = "שמור מתכון") }
                 } else {
-                    OutlinedTextField(value = pastedRecipeText, onValueChange = { pastedRecipeText = it }, modifier = Modifier.fillMaxWidth(), label = { Text("טקסט המתכון") }, minLines = 6, maxLines = 10)
-                    Button(onClick = { onExtractFromText(pastedRecipeText, selectedSheetTags.toList(), manualImageUrl); pastedRecipeText = ""; setShowPasteSheet(false) }, enabled = pastedRecipeText.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("חלץ מתכון מטקסט") }
+                    OutlinedTextField(value = pastedRecipeText, onValueChange = { updatePastedText(it) }, modifier = Modifier.fillMaxWidth(), label = { Text("טקסט המתכון") }, minLines = 6, maxLines = 10)
+                    Button(onClick = { onExtractFromText(pastedRecipeText, selectedSheetTags.toList(), manualImageUrl); setShowPasteSheet(false) }, enabled = pastedRecipeText.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("חלץ מתכון מטקסט") }
                 }
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -556,9 +610,9 @@ fun MainScreen(
 
     if (recipeToDelete != null) {
         AlertDialog(
-            onDismissRequest = { recipeToDelete = null }, title = { Text("מחיקת מתכון") }, text = { Text("בטוח שברצונך למחוק?") },
-            confirmButton = { TextButton(onClick = { onDeleteRecipe(recipeToDelete!!.id); recipeToDelete = null }) { Text("מחק", color = Color.Red) } },
-            dismissButton = { TextButton(onClick = { recipeToDelete = null }) { Text("בטל") } }
+            onDismissRequest = { updateRecipeToDelete(null) }, title = { Text("מחיקת מתכון") }, text = { Text("בטוח שברצונך למחוק?") },
+            confirmButton = { TextButton(onClick = { onDeleteRecipe(recipeToDelete!!.id); updateRecipeToDelete(null) }) { Text("מחק", color = Color.Red) } },
+            dismissButton = { TextButton(onClick = { updateRecipeToDelete(null) }) { Text("בטל") } }
         )
     }
 }

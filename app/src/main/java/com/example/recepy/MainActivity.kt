@@ -240,6 +240,7 @@ fun RecepyApp(
             val isImporting by mainViewModel.isImporting.collectAsState()
             val systemUpdateMessage by mainViewModel.systemUpdateMessage.collectAsState()
             val appUpdateMessage by mainViewModel.appUpdateMessage.collectAsState()
+            val downloadProgress by mainViewModel.downloadProgress.collectAsState()
             val importMessage by mainViewModel.importMessage.collectAsState()
             val settingsSnackbarHostState = remember { SnackbarHostState() }
 
@@ -268,6 +269,7 @@ fun RecepyApp(
                 appUpdateMessage = appUpdateMessage,
                 onCheckForUpdates = { mainViewModel.loadSeedRecipes() },
                 onCheckAppUpdate = { mainViewModel.checkForAppUpdate(context) },
+                downloadProgress = downloadProgress,
                 snackbarHostState = settingsSnackbarHostState
             )
         }
