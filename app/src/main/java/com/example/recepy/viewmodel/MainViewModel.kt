@@ -81,19 +81,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     )
     val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
 
+    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNDNCQz2Axq3ITm3WJTzjDbGeGbNayJB5poLJcS6AnIl0XqpwmUkKnQ1LBD4WNFE-HdA/exec"
+
     fun reportBug(bug: String) {
         viewModelScope.launch {
             val newList = _reportedBugs.value + bug
             _reportedBugs.value = newList
             prefs.edit { putStringSet("reported_bugs", newList.toSet()) }
-            
-            // Notification for Developer mode - simulation for now
-            // Sync with "Developer" (Email Intent / Server Simulation)
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    // Logic to send to developer would go here.
-                }
-            }
+            syncDeveloperDataWithRemote("add", "bug", bug)
+        }
+    }
+
+    fun removeReportedBug(bug: String) {
+        viewModelScope.launch {
+            val newList = _reportedBugs.value - bug
+            _reportedBugs.value = newList
+            prefs.edit { putStringSet("reported_bugs", newList.toSet()) }
+            syncDeveloperDataWithRemote("delete", "bug", bug)
         }
     }
 
@@ -101,6 +105,75 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         prefs.getStringSet("suggested_recipes", emptySet())?.toList() ?: emptyList()
     )
     val suggestedRecipesForDev: StateFlow<List<String>> = _suggestedRecipesForDev.asStateFlow()
+
+    fun suggestRecipeForDev(query: String) {
+        if (query.isBlank()) return
+        viewModelScope.launch {
+            val current = _suggestedRecipesForDev.value
+            if (!current.contains(query)) {
+                val newList = current + query
+                _suggestedRecipesForDev.value = newList
+                prefs.edit { putStringSet("suggested_recipes", newList.toSet()) }
+                syncDeveloperDataWithRemote("add", "request", query)
+            }
+        }
+    }
+
+    fun removeSuggestedRecipe(query: String) {
+        viewModelScope.launch {
+            val newList = _suggestedRecipesForDev.value - query
+            _suggestedRecipesForDev.value = newList
+            prefs.edit { putStringSet("suggested_recipes", newList.toSet()) }
+            syncDeveloperDataWithRemote("delete", "request", query)
+        }
+    }
+
+    private fun syncDeveloperDataWithRemote(action: String, type: String, content: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val json = Gson().toJson(mapOf(
+                    "action" to action,
+                    "type" to type,
+                    "content" to content
+                ))
+                org.jsoup.Jsoup.connect(SCRIPT_URL)
+                    .ignoreContentType(true)
+                    .requestBody(json)
+                    .method(org.jsoup.Connection.Method.POST)
+                    .followRedirects(true)
+                    .execute()
+            }.onFailure { it.printStackTrace() }
+        }
+    }
+
+    fun fetchDeveloperData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val response = org.jsoup.Jsoup.connect(SCRIPT_URL)
+                    .ignoreContentType(true)
+                    .method(org.jsoup.Connection.Method.GET)
+                    .followRedirects(true)
+                    .execute()
+                
+                val json = response.body()
+                val listType = object : com.google.gson.reflect.TypeToken<List<Map<String, String>>>() {}.type
+                val data: List<Map<String, String>> = Gson().fromJson(json, listType)
+                
+                val bugs = data.filter { it["type"] == "bug" }.mapNotNull { it["content"] }
+                val requests = data.filter { it["type"] == "request" }.mapNotNull { it["content"] }
+                
+                withContext(Dispatchers.Main) {
+                    _reportedBugs.value = bugs
+                    _suggestedRecipesForDev.value = requests
+                    // Update local prefs to keep them in sync
+                    prefs.edit { 
+                        putStringSet("reported_bugs", bugs.toSet())
+                        putStringSet("suggested_recipes", requests.toSet())
+                    }
+                }
+            }.onFailure { it.printStackTrace() }
+        }
+    }
 
     private val _checkedIngredientsMap = MutableStateFlow<Map<Long, Set<Int>>>(emptyMap())
     val checkedIngredientsMap: StateFlow<Map<Long, Set<Int>>> = _checkedIngredientsMap.asStateFlow()
@@ -208,6 +281,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Logic for Mako search suggestion
         if (query.isNotBlank() && finalSorted.isEmpty()) {
             _suggestMakoSearch.value = query
+            // Record suggested recipe for developer
+            @Suppress("UNCHECKED_CAST")
+            val viewModel = this@MainViewModel
+            viewModel.suggestRecipeForDev(query)
         } else {
             _suggestMakoSearch.value = null
         }
@@ -416,10 +493,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
         viewModelScope.launch { repository.saveRecipe(newRecipe) }
     }
-    fun extractRecipe() {
-        val input = _urlInput.value.trim()
+    fun extractRecipe(query: String? = null) {
+        val input = query ?: _urlInput.value.trim()
         if (input.isBlank()) { _recipeUiState.value = RecipeUiState.Error(getString(R.string.invalid_url)); return }
-        _urlInput.value = ""
+        if (query == null) _urlInput.value = ""
         _recipeUiState.value = RecipeUiState.Loading
         viewModelScope.launch {
             runCatching { 

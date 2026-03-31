@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
@@ -24,6 +25,9 @@ fun DeveloperScreen(
     onBack: () -> Unit,
     viewModel: MainViewModel = viewModel()
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.fetchDeveloperData()
+    }
     val suggestedRecipes by viewModel.suggestedRecipesForDev.collectAsState()
     val reportedBugs by viewModel.reportedBugs.collectAsState()
 
@@ -52,13 +56,17 @@ fun DeveloperScreen(
             DeveloperCard(
                 title = "באגים שדווחו",
                 icon = Icons.Default.BugReport,
-                items = reportedBugs.ifEmpty { listOf("אין דיווחי באגים חדשים") }
+                items = reportedBugs,
+                emptyText = "אין דיווחי באגים חדשים",
+                onDeleteItem = { viewModel.removeReportedBug(it) }
             )
 
             DeveloperCard(
                 title = "מתכונים מבוקשים (חיפושים ללא תוצאות)",
                 icon = Icons.Default.Lightbulb,
-                items = suggestedRecipes.ifEmpty { listOf("אין בקשות חדשות") }
+                items = suggestedRecipes,
+                emptyText = "אין בקשות חדשות",
+                onDeleteItem = { viewModel.removeSuggestedRecipe(it) }
             )
             
             DeveloperCard(
@@ -95,7 +103,9 @@ fun DeveloperScreen(
 fun DeveloperCard(
     title: String,
     icon: ImageVector,
-    items: List<String>
+    items: List<String>,
+    emptyText: String = "",
+    onDeleteItem: ((String) -> Unit)? = null
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -112,8 +122,31 @@ fun DeveloperCard(
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            items.forEach { item ->
-                Text("• $item", style = MaterialTheme.typography.bodyMedium)
+            if (items.isEmpty() && emptyText.isNotEmpty()) {
+                Text("• $emptyText", style = MaterialTheme.typography.bodyMedium)
+            } else {
+                items.forEach { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("• $item", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        if (onDeleteItem != null) {
+                            IconButton(
+                                onClick = { onDeleteItem(item) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "מחיקה",
+                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
