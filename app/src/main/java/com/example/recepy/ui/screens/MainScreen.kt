@@ -438,7 +438,7 @@ fun MainScreen(
                             }
                         }
 
-                        items(items = filteredRecipes, key = { it.id }) { recipe ->
+                        items(items = filteredRecipes, key = { if (it.id == -2L) it.title + it.sourceUrl else it.id.toString() }) { recipe ->
                             RecipeCardItem(
                                 recipe = recipe,
                                 onClick = onSavedRecipeClick,
@@ -769,7 +769,7 @@ fun RecipeCardItem(
                         modifier = Modifier.size(24.dp).padding(start = 4.dp)
                     ) {
                         if (recipe.id == -2L) {
-                            Icon(Icons.Default.Group, contentDescription = "מתכון משותף", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Groups, contentDescription = "מתכון משותף", tint = MaterialTheme.colorScheme.primary)
                         } else {
                             Icon(
                                 imageVector = if (recipe.isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,

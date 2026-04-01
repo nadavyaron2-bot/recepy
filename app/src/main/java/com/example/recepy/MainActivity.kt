@@ -297,7 +297,10 @@ fun RecepyApp(
         }
         composable("detail/{recipeId}", arguments = listOf(navArgument("recipeId") { type = NavType.LongType })) { backStackEntry ->
             val recipeId = backStackEntry.arguments?.getLong("recipeId") ?: -1L
-            LaunchedEffect(recipeId, selectedRecipe) { detailViewModel.loadRecipe(recipeId, if (recipeId == -1L) selectedRecipe else null) }
+            val groupRecipes by mainViewModel.groupRecipes.collectAsState()
+            LaunchedEffect(recipeId, selectedRecipe, groupRecipes) { 
+                detailViewModel.loadRecipe(recipeId, if (recipeId == -1L || recipeId == -2L) selectedRecipe else null, groupRecipes) 
+            }
             RecipeDetailScreen(
                 recipe = currentRecipe, isSaving = isSaving, isSaved = isSaved,
                 onBack = { navController.popBackStack() }, onSave = detailViewModel::saveRecipe,

@@ -138,22 +138,31 @@ fun GroupsScreen(
     }
 
     if (showJoinDialog) {
-        var joinId by remember { mutableStateOf("") }
+        var groupName by remember { mutableStateOf("") }
+        var password by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showJoinDialog = false },
             title = { Text("הצטרפות לקבוצה") },
             text = {
-                OutlinedTextField(
-                    value = joinId,
-                    onValueChange = { joinId = it },
-                    label = { Text("קוד קבוצה (6 ספרות)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = groupName,
+                        onValueChange = { groupName = it },
+                        label = { Text("שם הקבוצה") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("סיסמה") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 Button(onClick = {
-                    if (joinId.isNotBlank()) {
-                        viewModel.joinGroup(joinId)
+                    if (groupName.isNotBlank() && password.isNotBlank()) {
+                        viewModel.joinGroup(groupName, password)
                         showJoinDialog = false
                     }
                 }) {
@@ -170,21 +179,30 @@ fun GroupsScreen(
 
     if (showCreateDialog) {
         var groupName by remember { mutableStateOf("") }
+        var password by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
             title = { Text("יצירת קבוצה חדשה") },
             text = {
-                OutlinedTextField(
-                    value = groupName,
-                    onValueChange = { groupName = it },
-                    label = { Text("שם הקבוצה") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = groupName,
+                        onValueChange = { groupName = it },
+                        label = { Text("שם הקבוצה") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("סיסמה (לבחירתך)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 Button(onClick = {
-                    if (groupName.isNotBlank()) {
-                        viewModel.createGroup(groupName)
+                    if (groupName.isNotBlank() && password.isNotBlank()) {
+                        viewModel.createGroup(groupName, password)
                         showCreateDialog = false
                     }
                 }) {

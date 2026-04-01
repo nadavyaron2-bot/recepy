@@ -36,11 +36,20 @@ class RecipeDetailViewModel(application: Application) : AndroidViewModel(applica
 
     private var lastLoadedId: Long? = null
 
-    fun loadRecipe(recipeId: Long, extractedRecipe: Recipe?) {
+    fun loadRecipe(recipeId: Long, extractedRecipe: Recipe?, groupRecipes: Map<String, List<Recipe>>) {
         if (recipeId == -1L) {
             _currentRecipe.value = extractedRecipe
             _isSaved.value = extractedRecipe?.id?.let { it > 0L } == true
             lastLoadedId = -1L
+            return
+        }
+
+        if (recipeId == -2L) {
+            // Find in groupRecipes (all values flattened)
+            val groupRecipe = groupRecipes.values.flatten().find { it.id == -2L && it.title == extractedRecipe?.title }
+            _currentRecipe.value = groupRecipe ?: extractedRecipe
+            _isSaved.value = true // Treat group recipes as "saved" (read-only)
+            lastLoadedId = -2L
             return
         }
 
