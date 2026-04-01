@@ -49,5 +49,23 @@
     "tags": [
       "טבעוני"
     ]
+  },
+  {
+    "title": "מצה לא כשרה לפסח",
+    "imageUrl": "https://img.mako.co.il/2025/08/14/fucaccia_sumsum_re_autoOrient_w.jpg",
+    "ingredients": [
+      "לחם"
+    ],
+    "steps": [
+      "לימעוך את הלחם דק דק",
+      "לחורר",
+      "לישרוף צעט
+    ],
+    "sourceUrl": "nadav.com",
+    "dateAdded": 1774872833524,
+    "fingerprint": "f9bc75525d4a276b536ae02a187285b40cdf4e97b9727b4e291e07536a73c5af",
+    "tags": [
+      "חמץ"
+    ]
   }
 ]
