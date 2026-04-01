@@ -68,7 +68,9 @@ object RecipeTimerManager {
 
                     delay(8000)
                     ringtone.stop()
-                } catch (e: Exception) { e.printStackTrace() }
+                } catch (_: Exception) {
+                    // Error playing ringtone or showing notification
+                }
             }
         }
     }

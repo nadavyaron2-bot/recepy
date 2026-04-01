@@ -479,7 +479,8 @@ class RecipeParser {
             ".recipe-directions p", ".instructions-content p",
             ".recipe-instructions-item", ".step-list-item",
             ".article-content .instructions p", ".recipe_instructions .step_item",
-            ".recipe-preparation .step", ".method-step", ".recipe-step-text"
+            ".recipe-preparation .step", ".method-step", ".recipe-step-text",
+            ".recipe-steps div.step-content"
         )
         val TEXT_INGREDIENT_HEADERS = listOf("מצרכים", "רכיבים", "מה צריך", "החומרים", "ingredients", "לבצק", "למילוי", "המרכיבים")
         val TEXT_INSTRUCTION_HEADERS = listOf(

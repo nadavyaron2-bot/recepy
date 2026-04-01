@@ -136,8 +136,8 @@ class TimerService : Service() {
                 prepare()
                 start()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
+            // Error playing alarm
         }
     }
 

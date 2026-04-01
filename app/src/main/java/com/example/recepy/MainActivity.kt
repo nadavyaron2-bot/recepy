@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -66,7 +67,9 @@ class MainActivity : ComponentActivity() {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
 
-        handleAppIntent(intent)
+        if (savedInstanceState == null) {
+            handleAppIntent(intent)
+        }
 
         setContent {
 
@@ -92,7 +95,8 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
 
                     // משתנה שזוכר אם אנחנו עדיין במסך הפתיחה (Compose)
-                    var showSplash by remember { mutableStateOf(true) }
+                    // משתמשים ב-rememberSaveable כדי שזה יישמר בסיבוב מסך
+                    var showSplash by rememberSaveable { mutableStateOf(true) }
 
                     // בודקים מה להציג - את מסך הפתיחה או את האפליקציה המלאה
                     if (showSplash) {

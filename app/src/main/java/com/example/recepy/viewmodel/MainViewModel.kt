@@ -131,8 +131,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             null
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
             null
         }
     }
@@ -143,13 +142,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun syncDeveloperDataWithRemote(action: String, type: String, content: String) {
+    private fun syncDeveloperDataWithRemote(action: String, type: String, description: String) {
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 val json = Gson().toJson(mapOf(
                     "action" to action,
                     "type" to type,
-                    "content" to content
+                    "description" to description,
+                    "date" to System.currentTimeMillis().toString()
                 ))
                 org.jsoup.Jsoup.connect(SCRIPT_URL)
                     .ignoreContentType(true)
@@ -160,6 +160,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             // Always refresh data after any remote action to ensure UI reflects the "truth" from the table
             fetchDeveloperData()
+            if (type == "group" || type == "group_recipe") {
+                fetchGroups()
+            }
         }
     }
 
@@ -178,26 +181,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun createGroup(name: String, password: String) {
         viewModelScope.launch {
             val groupId = (100000..999999).random().toString()
-            // Format: name|id|password|creatorId|permissions(0:View, 1:Add, 2:Full)
-            syncDeveloperDataWithRemote("add", "group", "$name|$groupId|$password|$deviceId|2")
+            val metadata = mapOf(
+                "name" to name,
+                "id" to groupId,
+                "password" to password,
+                "creatorId" to deviceId,
+                "permissions" to 2
+            )
+            syncDeveloperDataWithRemote("add", "group", gson.toJson(metadata))
             // Automatically join the group we just created
-            val joinedGroups = prefs?.getStringSet("joined_groups", emptySet()) ?: emptySet()
-            prefs?.edit { putStringSet("joined_groups", joinedGroups + groupId) }
+            val joinedGroups = (prefs?.getStringSet("joined_groups", emptySet()) ?: emptySet()).toMutableSet()
+            joinedGroups.add(groupId)
+            prefs?.edit { putStringSet("joined_groups", joinedGroups) }
             fetchGroups()
         }
     }
 
     fun updateGroupPermissions(group: Map<String, Any>, newPermissions: Int) {
         viewModelScope.launch {
-            val name = group["name"] as String
             val id = group["id"] as String
-            val password = group["password"] as String
-            val creatorId = group["creatorId"] as String
             
-            // Remove old entry
-            syncDeveloperDataWithRemote("remove", "group", "$name|$id|$password|$creatorId|${group["permissions"]}")
-            // Add updated entry
-            syncDeveloperDataWithRemote("add", "group", "$name|$id|$password|$creatorId|$newPermissions")
+            val updatedMetadata = mapOf(
+                "name" to (group["name"] as String),
+                "id" to id,
+                "password" to (group["password"] as String),
+                "creatorId" to (group["creatorId"] as String),
+                "permissions" to newPermissions
+            )
+            
+            // Remove old entry (backend matches by type and description prefix or full match depending on script logic)
+            // But with our new system, we'll just send the update action if the script supports it, 
+            // or remove by ID if we update the script. For now, we follow the "remove then add" pattern but with JSON.
+            syncDeveloperDataWithRemote("remove", "group", id) 
+            syncDeveloperDataWithRemote("add", "group", gson.toJson(updatedMetadata))
             fetchGroups()
         }
     }
@@ -217,17 +233,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 
                 val groupEntry = data.find { entry ->
                     if (entry["type"] != "group") return@find false
-                    val parts = entry["content"]?.split("|") ?: return@find false
-                    (parts.size == 3 || parts.size == 5) && parts[0] == name && parts[2] == password
+                    val desc = entry["description"] ?: return@find false
+                    try {
+                        val metadata = gson.fromJson(desc, Map::class.java)
+                        metadata["name"] == name && metadata["password"] == password
+                    } catch (_: Exception) { false }
                 }
 
                 if (groupEntry != null) {
-                    val parts = groupEntry["content"]?.split("|") ?: return@runCatching
-                    val groupId = parts[1]
+                    val desc = groupEntry["description"]!!
+                    val metadata = gson.fromJson(desc, Map::class.java)
+                    val groupId = metadata["id"] as String
                     withContext(Dispatchers.Main) {
-                        val joinedGroups = (prefs.getStringSet("joined_groups", emptySet()) ?: emptySet()).toMutableSet()
+                        val joinedGroups = (prefs?.getStringSet("joined_groups", emptySet()) ?: emptySet()).toMutableSet()
                         joinedGroups.add(groupId)
-                        prefs.edit { putStringSet("joined_groups", joinedGroups) }
+                        prefs?.edit { putStringSet("joined_groups", joinedGroups) }
                         fetchGroups()
                     }
                 }
@@ -278,8 +298,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val listType = object : com.google.gson.reflect.TypeToken<List<Map<String, String>>>() {}.type
                 val data: List<Map<String, String>> = Gson().fromJson(json, listType)
                 
-                val bugs = data.filter { it["type"] == "bug" }.mapNotNull { it["content"] }
-                val requests = data.filter { it["type"] == "request" }.mapNotNull { it["content"] }
+                val bugs = data.filter { it["type"] == "bug" }.mapNotNull { it["description"] ?: it["content"] }
+                val requests = data.filter { it["type"] == "request" }.mapNotNull { it["description"] ?: it["content"] }
                 
                 withContext(Dispatchers.Main) {
                     _reportedBugs.value = bugs
@@ -305,32 +325,63 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val joinedGroupIds = prefs?.getStringSet("joined_groups", emptySet()) ?: emptySet()
                 
                 val groupsList = data.filter { it["type"] == "group" }.mapNotNull { 
-                    val parts = it["content"]?.split("|")
-                    if (parts != null && (parts.size == 3 || parts.size == 5)) {
-                        mutableMapOf(
-                            "name" to parts[0],
-                            "id" to parts[1],
-                            "password" to parts[2],
-                            "creatorId" to (parts.getOrNull(3) ?: ""),
-                            "permissions" to (parts.getOrNull(4)?.toIntOrNull() ?: 2),
-                            "isCreator" to (parts.getOrNull(3) == deviceId)
-                        )
-                    } else null
-                }.filter { joinedGroupIds.contains(it["id"]) }
+                    val desc = it["description"] ?: it["content"] ?: return@mapNotNull null
+                    try {
+                        val metadata = gson.fromJson(desc, Map::class.java)
+                        val id = metadata["id"] as String
+                        if (joinedGroupIds.contains(id)) {
+                            mutableMapOf(
+                                "name" to (metadata["name"] ?: ""),
+                                "id" to id,
+                                "password" to (metadata["password"] ?: ""),
+                                "creatorId" to (metadata["creatorId"] ?: ""),
+                                "permissions" to (metadata["permissions"]?.toString()?.toDouble()?.toInt() ?: 2),
+                                "isCreator" to (metadata["creatorId"] == deviceId)
+                            )
+                        } else null
+                    } catch (_: Exception) {
+                        // Fallback for old format
+                        val parts = desc.split("|")
+                        if (parts.size >= 3) {
+                            val id = parts[1]
+                            if (joinedGroupIds.contains(id)) {
+                                mutableMapOf(
+                                    "name" to parts[0],
+                                    "id" to id,
+                                    "password" to parts[2],
+                                    "creatorId" to (parts.getOrNull(3) ?: ""),
+                                    "permissions" to (parts.getOrNull(4)?.toIntOrNull() ?: 2),
+                                    "isCreator" to (parts.getOrNull(3) == deviceId)
+                                )
+                            } else null
+                        } else null
+                    }
+                }
                 
                 val groupRecipesMap = data.filter { it["type"] == "group_recipe" }.mapNotNull { 
-                    val content = it["content"] ?: return@mapNotNull null
-                    val parts = content.split("|", limit = 4)
-                    if (parts.size >= 2) {
-                        val gid = parts[0]
-                        val recipeJson = parts.last() // Always the last part is JSON
+                    val desc = it["description"] ?: it["content"] ?: return@mapNotNull null
+                    try {
+                        val recipeData = gson.fromJson(desc, Map::class.java)
+                        val gid = recipeData["groupId"] as String
+                        val recipeJson = recipeData["recipe"] as String
                         if (joinedGroupIds.contains(gid)) {
-                            try {
-                                val recipe = gson.fromJson(recipeJson, Recipe::class.java).copy(id = -2L)
-                                gid to recipe
-                            } catch (_: Exception) { null }
+                            val recipe = gson.fromJson(recipeJson, Recipe::class.java).copy(id = -2L)
+                            gid to recipe
                         } else null
-                    } else null
+                    } catch (_: Exception) {
+                        // Fallback for old format
+                        val parts = desc.split("|", limit = 4)
+                        if (parts.size >= 2) {
+                            val gid = parts[0]
+                            val recipeJson = parts.last()
+                            if (joinedGroupIds.contains(gid)) {
+                                try {
+                                    val recipe = gson.fromJson(recipeJson, Recipe::class.java).copy(id = -2L)
+                                    gid to recipe
+                                } catch (_: Exception) { null }
+                            } else null
+                        } else null
+                    }
                 }.groupBy({ it.first }, { it.second })
                 
                 withContext(Dispatchers.Main) {
@@ -345,23 +396,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             // Clean up recipe data for sharing (remove local ID, reset favorite)
             val cleanRecipe = recipe.copy(id = 0, isFavorite = false)
-            val json = gson.toJson(cleanRecipe)
-            // Format: groupId|category|imageUrl|json
-            val category = recipe.tags.firstOrNull() ?: "כללי"
-            val imageUrl = recipe.imageUrl ?: ""
-            syncDeveloperDataWithRemote("add", "group_recipe", "$groupId|$category|$imageUrl|$json")
-            fetchGroups()
+            val content = mapOf(
+                "groupId" to groupId,
+                "recipe" to gson.toJson(cleanRecipe)
+            )
+            syncDeveloperDataWithRemote("add", "group_recipe", gson.toJson(content))
         }
     }
 
     fun deleteGroupRecipe(groupId: String, recipe: Recipe) {
         viewModelScope.launch {
-            val cleanRecipe = recipe.copy(id = 0, isFavorite = false)
-            val json = gson.toJson(cleanRecipe)
-            val category = recipe.tags.firstOrNull() ?: "כללי"
-            val imageUrl = recipe.imageUrl ?: ""
-            syncDeveloperDataWithRemote("remove", "group_recipe", "$groupId|$category|$imageUrl|$json")
-            fetchGroups()
+            // Optimistic UI
+            val currentMap = _groupRecipes.value.toMutableMap()
+            val list = currentMap[groupId]?.toMutableList()
+            if (list != null) {
+                list.removeIf { it.title == recipe.title && it.sourceUrl == recipe.sourceUrl }
+                currentMap[groupId] = list
+                _groupRecipes.value = currentMap
+            }
+            
+            syncDeveloperDataWithRemote("remove", "group_recipe", groupId + "|" + recipe.title)
         }
     }
 
@@ -434,8 +488,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) { array ->
         @Suppress("UNCHECKED_CAST")
         val localRecipes = array[0] as List<Recipe>
-        @Suppress("UNCHECKED_CAST")
-        val remoteRecipes = array[1] as List<Recipe>
+        // remoteRecipes (array[1]) is isolated from the main library view
         val query = array[2] as String
         val alpha = array[3] as Boolean
         @Suppress("UNCHECKED_CAST")
@@ -443,7 +496,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val lastCooked = array[5] as Recipe?
         val ingredientsMode = array[6] as Boolean
 
-        val recipes = (localRecipes + remoteRecipes.map { it.copy(id = -2L) }).distinctBy { it.title + it.sourceUrl }
+        val recipes = (localRecipes).distinctBy { it.title + it.sourceUrl }
 
         val filtered = if (query.isBlank()) {
             recipes
@@ -469,7 +522,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         
         val sorted = if (alpha) {
-            afterTags.sortedBy { it.title }
+            afterTags.sortedBy { recipe ->
+                recipe.title.filter { it.isLetterOrDigit() }
+            }
         } else {
             afterTags.sortedWith(compareByDescending<Recipe> { it.dateAdded }.thenByDescending { it.id })
         }
@@ -568,8 +623,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun updateWidgets() {
         try {
             RecepyWidget().updateAll(getApplication())
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
+            // No action needed
         }
     }
 
@@ -674,14 +729,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (recipe.id == -2L) return // Cannot favorite remote group recipes for now
         viewModelScope.launch { repository.saveRecipe(recipe.copy(isFavorite = !recipe.isFavorite)) } 
     }
-    fun saveManualRecipe(title: String, ingredients: String, steps: String, tags: List<String>, imageUrl: String?) {
+    fun saveRecipe(recipe: Recipe) {
+        viewModelScope.launch {
+            repository.saveRecipe(recipe.copy(id = 0L))
+        }
+    }
+    
+    fun saveManualRecipe(
+        title: String,
+        ingredients: String,
+        steps: String,
+        tags: List<String>,
+        imageUrl: String?,
+        sourceUrl: String = "הזנה ידנית"
+    ) {
         val newRecipe = Recipe(
-            id = 0L, title = title.takeIf { it.isNotBlank() } ?: "מתכון חדש",
+            id = 0L,
+            title = title.takeIf { it.isNotBlank() } ?: "מתכון חדש",
             ingredients = ingredients.split("\n").map { it.trim() }.filter { it.isNotBlank() },
             steps = steps.split("\n").map { it.trim() }.filter { it.isNotBlank() },
-            imageUrl = imageUrl, sourceUrl = "הזנה ידנית", dateAdded = System.currentTimeMillis(), isFavorite = false, tags = tags
+            imageUrl = imageUrl,
+            sourceUrl = sourceUrl,
+            dateAdded = System.currentTimeMillis(),
+            isFavorite = false,
+            tags = tags
         )
-        viewModelScope.launch { repository.saveRecipe(newRecipe) }
+        saveRecipe(newRecipe)
     }
     fun extractRecipe(query: String? = null) {
         val input = (query ?: _urlInput.value).trim()
@@ -750,7 +823,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 .onFailure { throwable -> _recipeUiState.value = RecipeUiState.Error(throwable.message?.takeIf { it.isNotBlank() } ?: getString(R.string.parse_error)) }
         }
     }
-    fun deleteRecipe(recipeId: Long) { viewModelScope.launch { repository.deleteRecipe(recipeId) } }
+    fun deleteRecipe(recipeId: Long) {
+        viewModelScope.launch {
+            // No need for optimistic UI on savedRecipes as it's a Room StateFlow
+            // However, we should also clear selectedRecipe if it matches
+            if (_selectedRecipe.value?.id == recipeId) {
+                _selectedRecipe.value = null
+            }
+            repository.deleteRecipe(recipeId)
+        }
+    }
     fun consumeUiState() { _recipeUiState.value = RecipeUiState.Idle }
 
     private fun importBundledRecipesOnAppUpdate() {

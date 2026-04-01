@@ -33,6 +33,7 @@ fun GroupsScreen(
     
     var showJoinDialog by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.fetchGroups()
@@ -48,8 +49,22 @@ fun GroupsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.fetchGroups() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "רענן")
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(12.dp).size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        LaunchedEffect(groups, groupRecipes) {
+                            isRefreshing = false
+                        }
+                    } else {
+                        IconButton(onClick = { 
+                            isRefreshing = true
+                            viewModel.fetchGroups()
+                        }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "רענן")
+                        }
                     }
                 }
             )
@@ -119,13 +134,7 @@ fun GroupsScreen(
                         isCreator = group["isCreator"] as? Boolean ?: false,
                         permissions = group["permissions"] as? Int ?: 2,
                         onAddRecipe = { recipe ->
-                            viewModel.saveManualRecipe(
-                                recipe.title,
-                                recipe.ingredients.joinToString("\n"),
-                                recipe.steps.joinToString("\n"),
-                                recipe.tags,
-                                recipe.imageUrl
-                            )
+                            viewModel.saveRecipe(recipe)
                         },
                         onLeaveGroup = {
                             viewModel.leaveGroup(id)
@@ -230,6 +239,7 @@ fun GroupsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupCard(
     name: String,

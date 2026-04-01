@@ -83,7 +83,6 @@ fun RecipeDetailScreen(
     viewModel: MainViewModel = viewModel()
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    fun updateShowDeleteDialog(show: Boolean) { showDeleteDialog = show }
 
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
@@ -109,12 +108,8 @@ fun RecipeDetailScreen(
 
     val shareGraphicsLayer = rememberGraphicsLayer()
     var isShareCardReady by remember(recipe?.id) { mutableStateOf(false) }
-    fun updateIsShareCardReady(ready: Boolean) { isShareCardReady = ready }
-
 
     var showCookingMode by remember { mutableStateOf(false) }
-    fun updateShowCookingMode(show: Boolean) { showCookingMode = show }
-
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
@@ -151,8 +146,6 @@ fun RecipeDetailScreen(
         )
     }
 
-    fun setShowGroupShareDialog(show: Boolean) { showGroupShareDialog = show }
-
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
             Scaffold(
@@ -184,8 +177,8 @@ fun RecipeDetailScreen(
                                 }
                             },
                                     onEditStart = { isEditing = true },
-                                    onCookingModeStart = { updateShowCookingMode(true) },
-                                    onShareToGroup = { setShowGroupShareDialog(true) },
+                                    onCookingModeStart = { showCookingMode = true },
+                                    onShareToGroup = { showGroupShareDialog = true },
                                     onOpenSource = { uriHandler.openUri(it) },
                                     sourceUrl = recipe.sourceUrl,
                                     scrollBehavior = scrollBehavior
@@ -294,7 +287,7 @@ fun RecipeDetailScreen(
                     if (!isEditing) {
                         ExtendedFloatingActionButton(
                             onClick = {
-                                if (isSaved) updateShowDeleteDialog(true) else recipe?.let { onSave(it) }
+                                if (isSaved) showDeleteDialog = true else recipe?.let { onSave(it) }
                             },
                             expanded = true,
                             icon = { Icon(if (isSaved) Icons.Default.Delete else Icons.Default.Save, null) },
@@ -320,40 +313,6 @@ fun RecipeDetailScreen(
                             .padding(innerPadding),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
-                        item {
-                            HeaderSection(
-                                title = if (isEditing) editedTitle else recipe.title,
-                                imageUrl = if (isEditing) editedImageUrl else recipe.imageUrl,
-                                isEditing = isEditing,
-                                onTitleChange = { editedTitle = it },
-                                onImageUrlChange = { editedImageUrl = it },
-                                onBack = onBack,
-                                onShare = {
-                                    shareRecipeText(context, buildShareText(recipe.copy(
-                                        title = editedTitle,
-                                        ingredients = editedIngredients.split("\n").map { it.trim() }.filter { it.isNotBlank() },
-                                        steps = editedSteps.split("\n").map { it.trim() }.filter { it.isNotBlank() }
-                                    )))
-                                },
-                                onShareImage = {
-                                    if (isShareCardReady) {
-                                        viewModel.viewModelScope.launch {
-                                            val bitmap = shareGraphicsLayer.toImageBitmap().asAndroidBitmap()
-                                            shareRecipeImage(context, bitmap, recipe.title, recipe.sourceUrl)
-                                        }
-                                    } else {
-                                        Toast.makeText(context, "מכין את התמונה...", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                onEditStart = { isEditing = true },
-                                onCookingModeStart = { updateShowCookingMode(true) },
-                                onShareToGroup = { setShowGroupShareDialog(true) },
-                                onOpenSource = { uriHandler.openUri(it) },
-                                sourceUrl = recipe.sourceUrl,
-                                scrollBehavior = null
-                            )
-                        }
-
                         if (!isEditing && isSaved) {
                             item {
                                 Button(
@@ -649,7 +608,7 @@ fun RecipeDetailScreen(
                         RecipeShareCard(
                             recipe = recipe,
                             modifier = Modifier.width(600.dp),
-                            onImageReady = { updateIsShareCardReady(it) }
+                            onImageReady = { isShareCardReady = it }
                         )
                     }
                 }
@@ -657,14 +616,14 @@ fun RecipeDetailScreen(
 
             if (showDeleteDialog) {
                 AlertDialog(
-                    onDismissRequest = { updateShowDeleteDialog(false) },
+                    onDismissRequest = { showDeleteDialog = false },
                     title = { Text(text = stringResource(id = R.string.delete_recipe_title)) },
                     text = { Text(text = stringResource(id = R.string.delete_recipe_message)) },
                     confirmButton = {
-                        TextButton(onClick = { onDelete(); updateShowDeleteDialog(false) }) { Text(text = stringResource(id = R.string.delete), color = Color.Red) }
+                        TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text(text = stringResource(id = R.string.delete), color = Color.Red) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { updateShowDeleteDialog(false) }) { Text(text = stringResource(id = R.string.cancel)) }
+                        TextButton(onClick = { showDeleteDialog = false }) { Text(text = stringResource(id = R.string.cancel)) }
                     }
                 )
             }
@@ -672,7 +631,7 @@ fun RecipeDetailScreen(
             if (showCookingMode && recipe != null) {
                 CookingModeScreen(
                     recipe = recipe,
-                    onDismiss = { updateShowCookingMode(false) }
+                    onDismiss = { showCookingMode = false }
                 )
             }
         }
