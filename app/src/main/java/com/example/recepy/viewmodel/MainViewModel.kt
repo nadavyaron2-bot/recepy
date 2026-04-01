@@ -85,7 +85,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _reportedBugs = MutableStateFlow<List<String>>(emptyList())
     val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
 
-    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNDNCQz2Axq3ITm3WJTzjDbGeGbNayJB5poLJcS6AnIl0XqpwmUkKnQ1LBD4WNFE-HdA/exec"
+    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkHVM4ikm9jMKXhCg7KtYD54Q6yXOfTTtotJh1soz4qdPs1Jjmy5Aa4zupfaaeerNiLw/exec"
 
     fun reportBug(bug: String) {
         viewModelScope.launch {
@@ -106,6 +106,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (query.isBlank()) return
         viewModelScope.launch {
             syncDeveloperDataWithRemote("add", "request", query)
+        }
+    }
+
+    suspend fun searchMakoOnGoogle(query: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val searchQuery = "site:mako.co.il $query מתכון"
+            val url = "https://www.google.com/search?q=" + java.net.URLEncoder.encode(searchQuery, "UTF-8")
+            
+            val document = org.jsoup.Jsoup.connect(url)
+                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                .get()
+
+            val links = document.select("a[href]")
+            for (link in links) {
+                val href = link.attr("href")
+                if (href.contains("mako.co.il") && !href.contains("google.com")) {
+                    val cleanUrl = if (href.startsWith("/url?q=")) {
+                        href.substringAfter("/url?q=").substringBefore("&")
+                    } else {
+                        href
+                    }
+                    return@withContext cleanUrl
+                }
+            }
+            null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -138,13 +166,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _groups = MutableStateFlow<List<Map<String, Any>>>(emptyList())
     val groups: StateFlow<List<Map<String, Any>>> = _groups.asStateFlow()
 
+    private val deviceId: String by lazy {
+        val id = prefs.getString("device_id", null)
+        if (id == null) {
+            val newId = java.util.UUID.randomUUID().toString()
+            prefs.edit { putString("device_id", newId) }
+            newId
+        } else id
+    }
+
     fun createGroup(name: String, password: String) {
         viewModelScope.launch {
             val groupId = (100000..999999).random().toString()
-            syncDeveloperDataWithRemote("add", "group", "$name|$groupId|$password")
+            // Format: name|id|password|creatorId|permissions(0:View, 1:Add, 2:Full)
+            syncDeveloperDataWithRemote("add", "group", "$name|$groupId|$password|$deviceId|2")
             // Automatically join the group we just created
             val joinedGroups = prefs?.getStringSet("joined_groups", emptySet()) ?: emptySet()
             prefs?.edit { putStringSet("joined_groups", joinedGroups + groupId) }
+            fetchGroups()
+        }
+    }
+
+    fun updateGroupPermissions(group: Map<String, Any>, newPermissions: Int) {
+        viewModelScope.launch {
+            val name = group["name"] as String
+            val id = group["id"] as String
+            val password = group["password"] as String
+            val creatorId = group["creatorId"] as String
+            
+            // Remove old entry
+            syncDeveloperDataWithRemote("remove", "group", "$name|$id|$password|$creatorId|${group["permissions"]}")
+            // Add updated entry
+            syncDeveloperDataWithRemote("add", "group", "$name|$id|$password|$creatorId|$newPermissions")
             fetchGroups()
         }
     }
@@ -165,14 +218,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val groupEntry = data.find { entry ->
                     if (entry["type"] != "group") return@find false
                     val parts = entry["content"]?.split("|") ?: return@find false
-                    parts.size == 3 && parts[0] == name && parts[2] == password
+                    (parts.size == 3 || parts.size == 5) && parts[0] == name && parts[2] == password
                 }
 
                 if (groupEntry != null) {
-                    val groupId = groupEntry["content"]?.split("|")?.get(1) ?: return@runCatching
+                    val parts = groupEntry["content"]?.split("|") ?: return@runCatching
+                    val groupId = parts[1]
                     withContext(Dispatchers.Main) {
-                        val joinedGroups = prefs?.getStringSet("joined_groups", emptySet()) ?: emptySet()
-                        prefs?.edit { putStringSet("joined_groups", joinedGroups + groupId) }
+                        val joinedGroups = (prefs.getStringSet("joined_groups", emptySet()) ?: emptySet()).toMutableSet()
+                        joinedGroups.add(groupId)
+                        prefs.edit { putStringSet("joined_groups", joinedGroups) }
                         fetchGroups()
                     }
                 }
@@ -194,11 +249,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteGroup(groupId: String) {
         viewModelScope.launch {
+            // Smart delete: removes the group entry and all associated recipes by searching for groupId
             syncDeveloperDataWithRemote("remove", "group", groupId)
+            syncDeveloperDataWithRemote("remove", "group_recipe", groupId)
+            
             // Also leave it locally if we were in it
-            val joinedGroups = prefs?.getStringSet("joined_groups", emptySet()) ?: emptySet()
+            val joinedGroups = prefs.getStringSet("joined_groups", emptySet()) ?: emptySet()
             if (joinedGroups.contains(groupId)) {
-                prefs?.edit { putStringSet("joined_groups", joinedGroups - groupId) }
+                prefs.edit { putStringSet("joined_groups", joinedGroups - groupId) }
             }
             fetchGroups()
         }
@@ -248,15 +306,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 
                 val groupsList = data.filter { it["type"] == "group" }.mapNotNull { 
                     val parts = it["content"]?.split("|")
-                    if (parts?.size == 3) mapOf("name" to parts[0], "id" to parts[1]) else null
+                    if (parts != null && (parts.size == 3 || parts.size == 5)) {
+                        mutableMapOf(
+                            "name" to parts[0],
+                            "id" to parts[1],
+                            "password" to parts[2],
+                            "creatorId" to (parts.getOrNull(3) ?: ""),
+                            "permissions" to (parts.getOrNull(4)?.toIntOrNull() ?: 2),
+                            "isCreator" to (parts.getOrNull(3) == deviceId)
+                        )
+                    } else null
                 }.filter { joinedGroupIds.contains(it["id"]) }
                 
                 val groupRecipesMap = data.filter { it["type"] == "group_recipe" }.mapNotNull { 
                     val content = it["content"] ?: return@mapNotNull null
-                    val groupId = content.substringBefore("|")
-                    val recipeJson = content.substringAfter("|")
-                    if (joinedGroupIds.contains(groupId)) {
-                        groupId to gson.fromJson(recipeJson, Recipe::class.java)
+                    val parts = content.split("|", limit = 4)
+                    if (parts.size >= 2) {
+                        val gid = parts[0]
+                        val recipeJson = parts.last() // Always the last part is JSON
+                        if (joinedGroupIds.contains(gid)) {
+                            try {
+                                val recipe = gson.fromJson(recipeJson, Recipe::class.java).copy(id = -2L)
+                                gid to recipe
+                            } catch (_: Exception) { null }
+                        } else null
                     } else null
                 }.groupBy({ it.first }, { it.second })
                 
@@ -270,17 +343,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun shareRecipeToGroup(recipe: Recipe, groupId: String) {
         viewModelScope.launch {
-            val json = gson.toJson(recipe.copy(id = 0, isFavorite = false))
-            syncDeveloperDataWithRemote("add", "group_recipe", "$groupId|$json")
+            // Clean up recipe data for sharing (remove local ID, reset favorite)
+            val cleanRecipe = recipe.copy(id = 0, isFavorite = false)
+            val json = gson.toJson(cleanRecipe)
+            // Format: groupId|category|imageUrl|json
+            val category = recipe.tags.firstOrNull() ?: "כללי"
+            val imageUrl = recipe.imageUrl ?: ""
+            syncDeveloperDataWithRemote("add", "group_recipe", "$groupId|$category|$imageUrl|$json")
             fetchGroups()
         }
     }
 
     fun deleteGroupRecipe(groupId: String, recipe: Recipe) {
         viewModelScope.launch {
-            // Use a stable identifier if possible, but for now we match by title/source
-            val json = gson.toJson(recipe.copy(id = 0, isFavorite = false))
-            syncDeveloperDataWithRemote("remove", "group_recipe", "$groupId|$json")
+            val cleanRecipe = recipe.copy(id = 0, isFavorite = false)
+            val json = gson.toJson(cleanRecipe)
+            val category = recipe.tags.firstOrNull() ?: "כללי"
+            val imageUrl = recipe.imageUrl ?: ""
+            syncDeveloperDataWithRemote("remove", "group_recipe", "$groupId|$category|$imageUrl|$json")
             fetchGroups()
         }
     }
@@ -619,33 +699,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (input.startsWith("http")) {
                         repository.extractRecipeFromUrl(input)
                     } else {
-                        // Improved Mako & General Search Logic
-                        val searchQueries = listOf(
-                            "site:mako.co.il מתכון $input",
-                            "site:foody.co.il מתכון $input",
-                            "מתכון $input"
-                        )
-                        
-                        var foundLink: String? = null
-                        for (sq in searchQueries) {
-                            val searchUrl = "https://www.google.com/search?q=${java.net.URLEncoder.encode(sq, "UTF-8")}"
-                            val doc = org.jsoup.Jsoup.connect(searchUrl)
-                                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-                                .timeout(10000)
-                                .get()
-
-                            foundLink = doc.select("a[href^=/url?q=], a[href^=https://www.mako.co.il], a[href^=https://foody.co.il]")
-                                .map { it.attr("href") }
-                                .map { if (it.startsWith("/url?q=")) it.substringAfter("/url?q=").substringBefore("&") else it }
-                                .firstOrNull { link ->
-                                    link.contains("mako.co.il/food-recipes/recipes/") || 
-                                    link.contains("foody.co.il/recipe/")
-                                }
-                            
-                            if (foundLink != null) break
-                        }
-                        
-                        val finalLink = foundLink ?: throw Exception("לא נמצא מתכון מתאים לחיפוש זה")
+                        val finalLink = searchMakoOnGoogle(input) ?: throw Exception("לא נמצא מתכון מתאים לחיפוש זה")
                         repository.extractRecipeFromUrl(finalLink)
                     }
                 } 
@@ -661,6 +715,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         suggestRecipeForDev(input)
                     }
                 }
+        }
+    }
+
+    suspend fun extractRecipeSuspend(input: String): Recipe? = withContext(Dispatchers.IO) {
+        val trimmedInput = input.trim()
+        if (trimmedInput.isBlank()) return@withContext null
+        try {
+            if (trimmedInput.startsWith("http")) {
+                repository.extractRecipeFromUrl(trimmedInput)
+            } else {
+                val finalLink = searchMakoOnGoogle(trimmedInput)
+                if (finalLink != null) {
+                    repository.extractRecipeFromUrl(finalLink)
+                } else null
+            }
+        } catch (_: Exception) {
+            null
         }
     }
     fun handleSharedText(sharedText: String?): Boolean {

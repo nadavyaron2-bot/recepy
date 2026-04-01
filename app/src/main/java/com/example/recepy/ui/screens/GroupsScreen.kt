@@ -8,16 +8,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.recepy.data.repository.Recipe
 import com.example.recepy.viewmodel.MainViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,6 +116,8 @@ fun GroupsScreen(
                         name = name,
                         id = id,
                         recipes = recipes,
+                        isCreator = group["isCreator"] as? Boolean ?: false,
+                        permissions = group["permissions"] as? Int ?: 2,
                         onAddRecipe = { recipe ->
                             viewModel.saveManualRecipe(
                                 recipe.title,
@@ -130,7 +135,14 @@ fun GroupsScreen(
                         },
                         onDeleteRecipe = { recipe ->
                             viewModel.deleteGroupRecipe(id, recipe)
-                        }
+                        },
+                        onShareRecipe = { recipe ->
+                            viewModel.shareRecipeToGroup(recipe, id)
+                        },
+                        onUpdatePermissions = { newPerms ->
+                            viewModel.updateGroupPermissions(group, newPerms)
+                        },
+                        viewModel = viewModel
                     )
                 }
             }
@@ -223,13 +235,23 @@ fun GroupCard(
     name: String,
     id: String,
     recipes: List<Recipe>,
+    isCreator: Boolean,
+    permissions: Int, // 0: View, 1: Add, 2: Full (Add & Delete)
     onAddRecipe: (Recipe) -> Unit,
     onLeaveGroup: () -> Unit,
     onDeleteGroup: () -> Unit,
-    onDeleteRecipe: (Recipe) -> Unit
+    onDeleteRecipe: (Recipe) -> Unit,
+    onShareRecipe: (Recipe) -> Unit,
+    onUpdatePermissions: (Int) -> Unit,
+    viewModel: MainViewModel
 ) {
     var showLeaveConfirm by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showAddRecipeDialog by remember { mutableStateOf(false) }
+    var showPermissionsDialog by remember { mutableStateOf(false) }
+
+    val canAdd = isCreator || permissions >= 1
+    val canDelete = isCreator || permissions >= 2
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -245,21 +267,47 @@ fun GroupCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        if (isCreator) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(Icons.Default.AdminPanelSettings, "ניהול", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        }
+                    }
                     Text("קוד: $id", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row {
+                    if (isCreator) {
+                        IconButton(onClick = { showPermissionsDialog = true }) {
+                            Icon(Icons.Default.Security, contentDescription = "הגדרות הרשאה", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                     IconButton(onClick = { showLeaveConfirm = true }) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "עזוב קבוצה", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    IconButton(onClick = { showDeleteConfirm = true }) {
-                        Icon(Icons.Default.DeleteForever, contentDescription = "מחק קבוצה", tint = MaterialTheme.colorScheme.error)
+                    if (isCreator) {
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(Icons.Default.DeleteForever, contentDescription = "מחק קבוצה", tint = MaterialTheme.colorScheme.error)
+                        }
                     }
-                    Icon(Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp))
                 }
             }
             
             Spacer(modifier = Modifier.height(12.dp))
+            
+            if (canAdd) {
+                Button(
+                    onClick = { showAddRecipeDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.PostAdd, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("הוסף מתכון לקבוצה")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
             
@@ -282,6 +330,7 @@ fun GroupCard(
                         key(recipe.title + recipe.sourceUrl) {
                             SharedRecipeItem(
                                 recipe = recipe,
+                                canDelete = canDelete,
                                 onAdd = { onAddRecipe(recipe) },
                                 onDelete = { onDeleteRecipe(recipe) }
                             )
@@ -290,6 +339,29 @@ fun GroupCard(
                 }
             }
         }
+    }
+
+    if (showAddRecipeDialog) {
+        AddRecipeToGroupDialog(
+            onDismiss = { showAddRecipeDialog = false },
+            onShare = onShareRecipe,
+            viewModel = viewModel
+        )
+    }
+
+    if (showPermissionsDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionsDialog = false },
+            title = { Text("הגדרות הרשאת קבוצה") },
+            text = {
+                Column {
+                    PermissionOption("צפייה בלבד", 0, permissions) { onUpdatePermissions(0); showPermissionsDialog = false }
+                    PermissionOption("צפייה והוספה", 1, permissions) { onUpdatePermissions(1); showPermissionsDialog = false }
+                    PermissionOption("ניהול מלא (הוספה ומחיקה)", 2, permissions) { onUpdatePermissions(2); showPermissionsDialog = false }
+                }
+            },
+            confirmButton = {}
+        )
     }
 
     if (showLeaveConfirm) {
@@ -342,41 +414,59 @@ fun GroupCard(
 }
 
 @Composable
-fun SharedRecipeItem(recipe: Recipe, onAdd: () -> Unit, onDelete: () -> Unit) {
+fun SharedRecipeItem(recipe: Recipe, canDelete: Boolean, onAdd: () -> Unit, onDelete: () -> Unit) {
 
     var added by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Icon(Icons.Default.RestaurantMenu, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(recipe.title, style = MaterialTheme.typography.bodyLarge)
-        }
-        
-        Row {
-            IconButton(onClick = { showDeleteConfirm = true }) {
-                Icon(Icons.Default.Delete, contentDescription = "מחק מהקבוצה", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                if (!recipe.imageUrl.isNullOrEmpty()) {
+                    coil.compose.AsyncImage(
+                        model = recipe.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                } else {
+                    Icon(Icons.Default.RestaurantMenu, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(recipe.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
+            
+            Row {
+                if (canDelete) {
+                    IconButton(onClick = { showDeleteConfirm = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "מחק מהקבוצה", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
+                    }
+                }
 
-            IconButton(
-                onClick = { 
-                    onAdd()
-                    added = true
-                },
-                enabled = !added
-            ) {
-                Icon(
-                    imageVector = if (added) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
-                    contentDescription = "הוסף לספרייה שלי",
-                    tint = if (added) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
-                )
+                IconButton(
+                    onClick = { 
+                        onAdd()
+                        added = true
+                    },
+                    enabled = !added
+                ) {
+                    Icon(
+                        imageVector = if (added) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
+                        contentDescription = "הוסף לספרייה שלי",
+                        tint = if (added) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
@@ -404,4 +494,111 @@ fun SharedRecipeItem(recipe: Recipe, onAdd: () -> Unit, onDelete: () -> Unit) {
             }
         )
     }
+}
+
+@Composable
+fun PermissionOption(text: String, value: Int, current: Int, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = value == current, onClick = null)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text)
+    }
+}
+
+@Composable
+fun AddRecipeToGroupDialog(
+    onDismiss: () -> Unit,
+    onShare: (Recipe) -> Unit,
+    viewModel: MainViewModel
+) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val savedRecipes by viewModel.savedRecipes.collectAsState()
+    var urlText by remember { mutableStateOf("") }
+    var freeText by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("הוספת מתכון לקבוצה") },
+        text = {
+            Column(modifier = Modifier.heightIn(max = 400.dp)) {
+                PrimaryScrollableTabRow(selectedTabIndex = selectedTab) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) { Text("מהרשימה", modifier = Modifier.padding(8.dp)) }
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) { Text("קישור", modifier = Modifier.padding(8.dp)) }
+                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }) { Text("טקסט חופשי", modifier = Modifier.padding(8.dp)) }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                when (selectedTab) {
+                    0 -> {
+                        LazyColumn(modifier = Modifier.weight(1f)) {
+                            items(savedRecipes) { recipe ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { 
+                                            onShare(recipe)
+                                            onDismiss()
+                                        }
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.MenuBook, null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(recipe.title, maxLines = 1)
+                                }
+                            }
+                        }
+                    }
+                    1 -> {
+                        OutlinedTextField(
+                            value = urlText,
+                            onValueChange = { urlText = it },
+                            label = { Text("הדבק קישור למתכון") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    2 -> {
+                        OutlinedTextField(
+                            value = freeText,
+                            onValueChange = { freeText = it },
+                            label = { Text("הדבק כאן את הטקסט של המתכון") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (selectedTab != 0) {
+                Button(onClick = {
+                    if (selectedTab == 1 && urlText.isNotBlank()) {
+                        // Extract and share
+                        scope.launch {
+                            val recipe = viewModel.extractRecipeSuspend(urlText)
+                            if (recipe != null) onShare(recipe)
+                        }
+                        onDismiss()
+                    } else if (selectedTab == 2 && freeText.isNotBlank()) {
+                        // Parse and share
+                        viewModel.extractRecipeFromText(freeText, emptyList(), null)
+                        onDismiss()
+                    }
+                }) {
+                    Text("הוסף")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("ביטול") }
+        }
+    )
 }
