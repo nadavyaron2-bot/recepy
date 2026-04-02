@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -38,7 +39,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.example.recepy.viewmodel.MainViewModel
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -95,8 +101,10 @@ fun SettingsScreen(
     isDeveloper: Boolean = false,
     onDeveloperModeToggle: (Boolean) -> Unit = {},
     onReportBug: (String) -> Unit = {},
-    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    viewModel: MainViewModel
 ) {
+    val shoppingListItems by viewModel.shoppingList.collectAsState()
     val showDeleteDialog = remember { mutableStateOf(false) }
     val selectedDomains = remember { mutableStateOf<Set<String>>(emptySet()) }
     
@@ -114,26 +122,26 @@ fun SettingsScreen(
     if (showDevLoginDialog.value) {
         AlertDialog(
             onDismissRequest = { showDevLoginDialog.value = false },
-            title = { Text("כניסת מפתחים") },
+            title = { Text(stringResource(R.string.dev_login_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("הכנס פרטי גישה למצב מפתחים:")
+                    Text(stringResource(R.string.dev_login_message))
                     OutlinedTextField(
                         value = devUsername.value,
                         onValueChange = { devUsername.value = it; loginError.value = false },
-                        label = { Text("שם משתמש") },
+                        label = { Text(stringResource(R.string.username_label)) },
                         isError = loginError.value
                     )
                     OutlinedTextField(
                         value = devPassword.value,
                         onValueChange = { devPassword.value = it; loginError.value = false },
-                        label = { Text("סיסמה") },
+                        label = { Text(stringResource(R.string.password_label)) },
                         visualTransformation = PasswordVisualTransformation(),
                         isError = loginError.value
                     )
                     if (loginError.value) {
                         Text(
-                            "שם משתמש או סיסמה שגויים",
+                            stringResource(R.string.login_error),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.labelSmall
                         )
@@ -149,12 +157,12 @@ fun SettingsScreen(
                         loginError.value = true
                     }
                 }) {
-                    Text("התחבר")
+                    Text(stringResource(R.string.login_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDevLoginDialog.value = false }) {
-                    Text("ביטול")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -199,7 +207,7 @@ fun SettingsScreen(
                             )
                             val total = domainCounts.values.sum()
                             Text(
-                                text = "$total מתכונים",
+                                text = stringResource(R.string.recipes_count, total),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -232,7 +240,7 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    text = "$count מתכונים",
+                                    text = stringResource(R.string.recipes_count, count),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -281,14 +289,23 @@ fun SettingsScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.setShowShoppingList(true) }) {
+                        BadgedBox(
+                            badge = { if (shoppingListItems.isNotEmpty()) Badge { Text(shoppingListItems.size.toString()) } }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = stringResource(id = R.string.shopping_list)
+                            )
+                        }
                     }
                 }
             )
@@ -307,7 +324,7 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
 
             Text(
-                text = "מצב תצוגה",
+                text = stringResource(R.string.display_mode_title),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -331,7 +348,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "צבע ערכת נושא",
+                text = stringResource(R.string.theme_color_title),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -506,11 +523,11 @@ fun SettingsScreen(
             ) {
                 Column {
                     Text(
-                        text = "עדכון מתכוני מערכת",
+                        text = stringResource(R.string.update_system_recipes_title),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        text = "בדוק אם נוספו מתכונים חדשים לאוסף המובנה",
+                        text = stringResource(R.string.update_system_recipes_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -542,11 +559,11 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "עדכון אפליקציה",
+                        text = stringResource(R.string.update_app_title),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        text = "בדוק אם קיימת גרסה חדשה של האפליקציה",
+                        text = stringResource(R.string.update_app_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -585,18 +602,18 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "דיווח על באג / הצעה לשיפור",
+                    text = stringResource(R.string.report_bug_suggestion_title),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = "מצאתם בעיה או שיש לכם רעיון לשיפור? ספרו לנו!",
+                    text = stringResource(R.string.report_bug_suggestion_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
                     value = reportContent.value,
                     onValueChange = { reportContent.value = it },
-                    label = { Text("תיאור הבאג או ההצעה") },
+                    label = { Text(stringResource(R.string.bug_report_hint)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
@@ -610,7 +627,7 @@ fun SettingsScreen(
                     modifier = Modifier.align(Alignment.End),
                     enabled = reportContent.value.isNotBlank()
                 ) {
-                    Text("שלח דיווח/הצעה")
+                    Text(stringResource(R.string.send_report_button))
                 }
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
@@ -625,7 +642,7 @@ fun SettingsScreen(
             ) {
                 val totalRecipes = domainCounts.values.sum()
                 Text(
-                    text = "סה\"כ מתכונים: $totalRecipes",
+                    text = stringResource(R.string.total_recipes_count, totalRecipes),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -645,7 +662,7 @@ fun SettingsScreen(
                 val versionName = packageInfo?.versionName ?: "1.0.0"
                 
                 Text(
-                    text = "גרסה $versionName",
+                    text = stringResource(R.string.version_label, versionName),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.clickable(
@@ -669,13 +686,13 @@ fun SettingsScreen(
 
                 if (isDeveloper) {
                     Text(
-                        text = "מצב מפתחים פעיל",
+                        text = stringResource(R.string.dev_mode_active),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                     TextButton(onClick = { onDeveloperModeToggle(false) }) {
-                        Text("ביטול מצב מפתחים", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.disable_dev_mode), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }

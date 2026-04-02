@@ -142,22 +142,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun syncDeveloperDataWithRemote(action: String, type: String, description: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+    private suspend fun syncDeveloperDataWithRemote(action: String, type: String, description: String) {
+        withContext(Dispatchers.IO) {
             runCatching {
-                val json = Gson().toJson(mapOf(
-                    "action" to action,
-                    "type" to type,
-                    "description" to description,
-                    "date" to System.currentTimeMillis().toString()
-                ))
+                // Use form data (.data()) instead of requestBody(json) for better compatibility with Google Apps Script
+                // We send both 'description' and 'content' keys to ensure compatibility with different script versions
                 org.jsoup.Jsoup.connect(SCRIPT_URL)
                     .ignoreContentType(true)
-                    .requestBody(json)
+                    .data("action", action)
+                    .data("type", type)
+                    .data("description", description)
+                    .data("content", description)
+                    .data("date", System.currentTimeMillis().toString())
                     .method(org.jsoup.Connection.Method.POST)
                     .followRedirects(true)
                     .execute()
-            }
+            }.onFailure { it.printStackTrace() }
+
             // Always refresh data after any remote action to ensure UI reflects the "truth" from the table
             fetchDeveloperData()
             if (type == "group" || type == "group_recipe") {
@@ -328,15 +329,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val desc = it["description"] ?: it["content"] ?: return@mapNotNull null
                     try {
                         val metadata = gson.fromJson(desc, Map::class.java)
-                        val id = metadata["id"] as String
+                        val id = metadata["id"]?.toString() ?: ""
                         if (joinedGroupIds.contains(id)) {
                             mutableMapOf(
-                                "name" to (metadata["name"] ?: ""),
+                                "name" to (metadata["name"]?.toString() ?: ""),
                                 "id" to id,
-                                "password" to (metadata["password"] ?: ""),
-                                "creatorId" to (metadata["creatorId"] ?: ""),
+                                "password" to (metadata["password"]?.toString() ?: ""),
+                                "creatorId" to (metadata["creatorId"]?.toString() ?: ""),
                                 "permissions" to (metadata["permissions"]?.toString()?.toDouble()?.toInt() ?: 2),
-                                "isCreator" to (metadata["creatorId"] == deviceId)
+                                "isCreator" to (metadata["creatorId"]?.toString() == deviceId)
                             )
                         } else null
                     } catch (_: Exception) {
@@ -362,8 +363,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val desc = it["description"] ?: it["content"] ?: return@mapNotNull null
                     try {
                         val recipeData = gson.fromJson(desc, Map::class.java)
-                        val gid = recipeData["groupId"] as String
-                        val recipeJson = recipeData["recipe"] as String
+                        val gid = recipeData["groupId"]?.toString() ?: ""
+                        val recipeJson = recipeData["recipe"]?.toString() ?: ""
                         if (joinedGroupIds.contains(gid)) {
                             val recipe = gson.fromJson(recipeJson, Recipe::class.java).copy(id = -2L)
                             gid to recipe
@@ -415,7 +416,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _groupRecipes.value = currentMap
             }
             
-            syncDeveloperDataWithRemote("remove", "group_recipe", groupId + "|" + recipe.title)
+            // On backend, removal of group recipe needs the JSON content for better matching if possible,
+            // or we follow the existing pattern in the script.
+            // Assuming the script matches by full string or a prefix:
+            val content = mapOf(
+                "groupId" to groupId,
+                "recipe" to gson.toJson(recipe.copy(id = 0, isFavorite = false))
+            )
+            syncDeveloperDataWithRemote("remove", "group_recipe", gson.toJson(content))
         }
     }
 
@@ -741,25 +749,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         steps: String,
         tags: List<String>,
         imageUrl: String?,
-        sourceUrl: String = "הזנה ידנית"
+        notes: String = "",
+        sourceUrl: String? = null
     ) {
         val newRecipe = Recipe(
             id = 0L,
-            title = title.takeIf { it.isNotBlank() } ?: "מתכון חדש",
+            title = title.takeIf { it.isNotBlank() } ?: getString(R.string.fallback_title),
             ingredients = ingredients.split("\n").map { it.trim() }.filter { it.isNotBlank() },
             steps = steps.split("\n").map { it.trim() }.filter { it.isNotBlank() },
             imageUrl = imageUrl,
-            sourceUrl = sourceUrl,
+            sourceUrl = sourceUrl ?: getString(R.string.manual_entry_source),
             dateAdded = System.currentTimeMillis(),
             isFavorite = false,
-            tags = tags
+            tags = tags,
+            notes = notes
         )
         saveRecipe(newRecipe)
     }
     fun extractRecipe(query: String? = null) {
         val input = (query ?: _urlInput.value).trim()
         if (input.isBlank()) { 
-            _recipeUiState.value = RecipeUiState.Error("אנא הזן חיפוש או קישור")
+            _recipeUiState.value = RecipeUiState.Error(getString(R.string.enter_search_or_link))
             return 
         }
         
@@ -772,7 +782,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (input.startsWith("http")) {
                         repository.extractRecipeFromUrl(input)
                     } else {
-                        val finalLink = searchMakoOnGoogle(input) ?: throw Exception("לא נמצא מתכון מתאים לחיפוש זה")
+                        val finalLink = searchMakoOnGoogle(input) ?: throw Exception(getString(R.string.no_recipe_found_for_search))
                         repository.extractRecipeFromUrl(finalLink)
                     }
                 } 
@@ -782,7 +792,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _recipeUiState.value = RecipeUiState.Success(recipe) 
                 }
                 .onFailure { throwable -> 
-                    _recipeUiState.value = RecipeUiState.Error(throwable.message?.takeIf { it.isNotBlank() } ?: "שגיאה בחילוץ המתכון")
+                    _recipeUiState.value = RecipeUiState.Error(throwable.message?.takeIf { it.isNotBlank() } ?: getString(R.string.recipe_extraction_error))
                     // If search failed, log it as a request for developer
                     if (!input.startsWith("http")) {
                         suggestRecipeForDev(input)
@@ -813,12 +823,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val url = extractHttpUrl(text) ?: return false
         _urlInput.value = url; extractRecipe(); return true
     }
-    fun extractRecipeFromText(recipeText: String, tags: List<String>, imageUrl: String?) {
+    fun extractRecipeFromText(recipeText: String, tags: List<String>, imageUrl: String?, notes: String = "") {
         val normalizedText = recipeText.trim()
         if (normalizedText.isBlank()) { _recipeUiState.value = RecipeUiState.Error(getString(R.string.parse_error)); return }
         _recipeUiState.value = RecipeUiState.Loading
         viewModelScope.launch {
-            runCatching { repository.extractRecipeFromText(normalizedText).copy(tags = tags, imageUrl = imageUrl) }
+            runCatching { repository.extractRecipeFromText(normalizedText).copy(tags = tags, imageUrl = imageUrl, notes = notes) }
                 .onSuccess { recipe -> _selectedRecipe.value = recipe; _recipeUiState.value = RecipeUiState.Success(recipe) }
                 .onFailure { throwable -> _recipeUiState.value = RecipeUiState.Error(throwable.message?.takeIf { it.isNotBlank() } ?: getString(R.string.parse_error)) }
         }
@@ -861,7 +871,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun checkForAppUpdate(context: Context) {
         viewModelScope.launch {
-            _appUpdateMessage.value = "בודק..."
+            _appUpdateMessage.value = getString(R.string.checking)
             val versionUrl = "https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/master/update/version.json"
             
             runCatching {
@@ -888,20 +898,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (remoteVersionCode > currentVersionCode && !downloadUrl.isNullOrBlank()) {
                         _updateDownloadUrl.value = downloadUrl
                         _showUpdateDialog.value = true
-                        _appUpdateMessage.value = "עדכון זמין"
+                        _appUpdateMessage.value = getString(R.string.update_available)
                     } else {
-                        _appUpdateMessage.value = "האפליקציה מעודכנת"
+                        _appUpdateMessage.value = getString(R.string.app_up_to_date)
                     }
                 }
             }.onFailure {
-                _appUpdateMessage.value = "שגיאה בבדיקת עדכון"
+                _appUpdateMessage.value = getString(R.string.update_check_error)
             }
         }
     }
 
     fun installUpdate(context: Context, url: String) {
         viewModelScope.launch {
-            _appUpdateMessage.value = "מוריד עדכון..."
+            _appUpdateMessage.value = getString(R.string.downloading_update)
             _downloadProgress.value = 0f
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -937,11 +947,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     context.startActivity(intent)
                 }
-                _appUpdateMessage.value = "הורדה הושלמה"
+                _appUpdateMessage.value = getString(R.string.download_complete)
                 _downloadProgress.value = null
             }.onFailure {
                 it.printStackTrace()
-                _appUpdateMessage.value = "שגיאה בהורדת העדכון"
+                _appUpdateMessage.value = getString(R.string.download_error)
                 _downloadProgress.value = null
             }
         }
@@ -954,7 +964,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun loadSeedRecipes() {
         viewModelScope.launch {
             _isImporting.value = true
-            _systemUpdateMessage.value = "בודק..."
+            _systemUpdateMessage.value = getString(R.string.checking)
             val context = getApplication<Application>().applicationContext
             
             val remoteUrl = "https://raw.githubusercontent.com/nadavyaron2-bot/recepy/refs/heads/main/system_recipes.json"
@@ -965,10 +975,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isImporting.value = false
             
             if (insertedCount > 0) {
-                _systemUpdateMessage.value = "נוספו $insertedCount מתכונים חדשים"
+                _systemUpdateMessage.value = getString(R.string.new_recipes_added_count).format(insertedCount)
                 RecepyWidget().updateAll(context)
             } else {
-                _systemUpdateMessage.value = "המתכונים כבר מעודכנים"
+                _systemUpdateMessage.value = getString(R.string.recipes_up_to_date)
             }
         }
     }
@@ -990,7 +1000,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 putExtra(android.content.Intent.EXTRA_STREAM, uri)
                 addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(android.content.Intent.createChooser(intent, "שתף את כל המתכונים"))
+            context.startActivity(android.content.Intent.createChooser(intent, getString(R.string.export_chooser_title)))
         }
     }
 
@@ -1000,7 +1010,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             if (json != null) {
                 val count = repository.importRecipesFromJson(json)
-                _importMessage.value = if (count > 0) "יובאו $count מתכונים חדשים" else "לא נמצאו מתכונים חדשים לייבוא"
+                _importMessage.value = if (count > 0) getString(R.string.recipes_imported_count).format(count) else getString(R.string.no_new_recipes_to_import)
                 RecepyWidget().updateAll(context)
             }
             _isImporting.value = false

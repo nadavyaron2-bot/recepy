@@ -19,6 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.ui.res.stringResource
+import com.example.recepy.R
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeveloperScreen(
@@ -33,11 +36,11 @@ fun DeveloperScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("ארגז כלים למפתחים") },
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(R.string.developer_tools_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back_desc))
                     }
                 }
             )
@@ -51,26 +54,26 @@ fun DeveloperScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("ברוך הבא למצב מפתח!", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.welcome_dev_mode), style = MaterialTheme.typography.headlineSmall)
             
             DeveloperCard(
-                title = "באגים שדווחו",
+                title = stringResource(R.string.reported_bugs_title),
                 icon = Icons.Default.BugReport,
                 items = reportedBugs,
-                emptyText = "אין דיווחי באגים חדשים",
+                emptyText = stringResource(R.string.no_new_bugs),
                 onDeleteItem = { viewModel.removeReportedBug(it) }
             )
 
             DeveloperCard(
-                title = "מתכונים מבוקשים (חיפושים ללא תוצאות)",
+                title = stringResource(R.string.suggested_recipes_title),
                 icon = Icons.Default.Lightbulb,
                 items = suggestedRecipes,
-                emptyText = "אין בקשות חדשות",
+                emptyText = stringResource(R.string.no_new_requests),
                 onDeleteItem = { viewModel.removeSuggestedRecipe(it) }
             )
             
             DeveloperCard(
-                title = "באגים בטיפול",
+                title = stringResource(R.string.bugs_in_progress_title),
                 icon = Icons.Default.BugReport,
                 items = listOf(
                     "pluralization של מספרים מורכבים (כוס וחצי) - שופר",
@@ -79,7 +82,7 @@ fun DeveloperScreen(
             )
 
             DeveloperCard(
-                title = "מתכונים מתוכננים",
+                title = stringResource(R.string.planned_recipes_title),
                 icon = Icons.Default.Info,
                 items = listOf(
                     "עוגת ביסקוויטים קלאסית",
@@ -91,7 +94,7 @@ fun DeveloperScreen(
             Spacer(modifier = Modifier.weight(1f))
             
             Text(
-                "כלים מתקדמים (DB Inspector, Logs) יתווספו בגרסאות הבאות.",
+                stringResource(R.string.advanced_tools_footer),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -139,7 +142,7 @@ fun DeveloperCard(
                             ) {
                                 Icon(
                                     Icons.Default.Delete,
-                                    contentDescription = "מחיקה",
+                                    contentDescription = stringResource(R.string.delete_desc),
                                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                                     modifier = Modifier.size(18.dp)
                                 )

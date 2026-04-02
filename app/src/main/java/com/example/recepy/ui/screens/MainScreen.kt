@@ -1,13 +1,10 @@
 ﻿package com.example.recepy.ui.screens
 
-import android.content.Context
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,7 +15,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,13 +22,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,7 +42,21 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -69,42 +78,40 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.recepy.R
 import com.example.recepy.data.repository.Recipe
 import com.example.recepy.viewmodel.MainViewModel
+import com.example.recepy.viewmodel.RecipeUiState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
-    urlInput: String,
-    onUrlChanged: (String) -> Unit,
-    onExtractClick: () -> Unit,
-    onExtractFromText: (String, List<String>, String?) -> Unit,
-    onToggleFavorite: (Recipe) -> Unit,
-    isLoading: Boolean,
-    savedRecipes: List<Recipe>,
-    filteredRecipes: List<Recipe>,
-    searchQuery: String,
-    onSearchQueryChanged: (String) -> Unit,
-    onSettingsClick: () -> Unit,
-    onGroupsClick: () -> Unit,
     onSavedRecipeClick: (Long) -> Unit,
     onDeleteRecipe: (Long) -> Unit,
-    sortByAlpha: Boolean,
-    onSortToggle: () -> Unit,
     snackbarHostState: SnackbarHostState,
-    onDeveloperToolClick: () -> Unit = {},
-    isDeveloper: Boolean = false,
     viewModel: MainViewModel = viewModel()
 ) {
+    val filteredRecipes by viewModel.filteredRecipes.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val sortByAlpha by viewModel.sortByAlpha.collectAsState()
+    val urlInput by viewModel.urlInput.collectAsState()
+    val recipeUiState by viewModel.recipeUiState.collectAsState()
+    val savedRecipes by viewModel.savedRecipes.collectAsState()
+
+    val onUrlChanged = viewModel::onUrlChanged
+    val onSearchQueryChanged = viewModel::onSearchQueryChanged
+    val onSortToggle = viewModel::toggleSort
+    val onToggleFavorite = viewModel::toggleFavorite
+    val onExtractClick = { viewModel.extractRecipe() }
+    val onExtractFromText = viewModel::extractRecipeFromText
+    val isLoading = recipeUiState is RecipeUiState.Loading
+
     LaunchedEffect(Unit) {
         viewModel.loadSeedRecipes()
     }
@@ -114,8 +121,6 @@ fun MainScreen(
 
     val showPasteSheet by viewModel.showAddDialog.collectAsState()
     fun setShowPasteSheet(show: Boolean) = viewModel.setShowAddDialog(show)
-
-    val showShoppingList by viewModel.showShoppingList.collectAsState()
 
     var isSearchFocused by remember { mutableStateOf(false) }
     fun updateSearchFocus(focused: Boolean) { isSearchFocused = focused }
@@ -130,10 +135,6 @@ fun MainScreen(
     val lastCookedRecipe by viewModel.lastCookedRecipe.collectAsState()
     val searchByIngredients by viewModel.searchByIngredients.collectAsState()
     val shoppingListItems by viewModel.shoppingList.collectAsState()
-    val context = LocalContext.current
-
-    val prefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
-    var useManualInput by remember { mutableStateOf(prefs.getBoolean("use_manual_input", true)) }
 
     val lazyListState = rememberLazyListState()
     val isScrollingUp = remember {
@@ -169,30 +170,15 @@ fun MainScreen(
                 CenterAlignedTopAppBar(
                     title = { Text(text = stringResource(id = R.string.top_bar_title)) },
                     actions = {
-                        IconButton(onClick = { onGroupsClick() }) {
-                            Icon(Icons.Default.Group, contentDescription = "קבוצות")
-                        }
                         IconButton(onClick = { viewModel.setShowShoppingList(true) }) {
                             BadgedBox(
                                 badge = { if (shoppingListItems.isNotEmpty()) Badge { Text(shoppingListItems.size.toString()) } }
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ShoppingCart,
-                                    contentDescription = "רשימת קניות"
+                                    contentDescription = stringResource(id = R.string.shopping_list)
                                 )
                             }
-                        }
-                        if (isDeveloper) {
-                            IconButton(onClick = onDeveloperToolClick) {
-                                Icon(
-                                    imageVector = Icons.Default.Build,
-                                    contentDescription = "Developer Tools",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                        IconButton(onClick = onSettingsClick) {
-                            Icon(Icons.Default.Settings, contentDescription = stringResource(id = R.string.settings_content_desc))
                         }
                     }
                 )
@@ -215,7 +201,7 @@ fun MainScreen(
                     shape = CircleShape,
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Scroll to top")
+                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(id = R.string.scroll_to_top))
                 }
             }
         },
@@ -248,7 +234,7 @@ fun MainScreen(
                         onClick = { setShowPasteSheet(true) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = "יצירת מתכון חדש / הדבקה מטקסט")
+                        Text(text = stringResource(id = R.string.create_new_recipe_or_paste))
                     }
 
                     Button(
@@ -350,7 +336,7 @@ fun MainScreen(
                             onClick = { viewModel.toggleTagFilter(tag) },
                             label = { Text(tag) },
                             leadingIcon = if (selectedTagFilters.contains(tag)) {
-                                { Icon(imageVector = Icons.Filled.Done, contentDescription = "Selected", modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                                { Icon(imageVector = Icons.Filled.Done, contentDescription = stringResource(id = R.string.selected_indicator), modifier = Modifier.size(FilterChipDefaults.IconSize)) }
                             } else null
                         )
                     }
@@ -384,12 +370,12 @@ fun MainScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "לא נמצאו תוצאות ל-\"$searchQuery\"",
+                            text = stringResource(id = R.string.no_results_for, searchQuery),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "אולי תרצה שנחפש עבורך ברשת?",
+                            text = stringResource(id = R.string.search_on_web_suggestion),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -403,7 +389,7 @@ fun MainScreen(
                         ) {
                             Icon(Icons.Default.AutoFixHigh, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("חפש וחלץ מתכון באופן אוטומטי")
+                            Text(stringResource(id = R.string.auto_search_extract))
                         }
                     }
                 } else {
@@ -416,7 +402,7 @@ fun MainScreen(
                         if (lastCookedRecipe != null && searchQuery.isBlank() && selectedTagFilters.isEmpty()) {
                             item {
                                 Text(
-                                    text = "הכנתי לאחרונה 👨‍🍳",
+                                    text = stringResource(id = R.string.recently_cooked),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
@@ -430,7 +416,7 @@ fun MainScreen(
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "כל המתכונים",
+                                    text = stringResource(id = R.string.all_recipes),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(bottom = 8.dp)
@@ -452,260 +438,212 @@ fun MainScreen(
         }
     }
 
-    if (showShoppingList) {
-        ModalBottomSheet(onDismissRequest = { viewModel.setShowShoppingList(false) }) {
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("רשימת קניות 🛒", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (shoppingListItems.isNotEmpty()) {
-                            IconButton(onClick = {
-                                val shareText = "🛒 *רשימת קניות :*\n\n" +
-                                        shoppingListItems.filter { !it.isChecked }
-                                            .groupBy { it.recipeName ?: "מצרכים כלליים" }
-                                            .map { (recipe, items) ->
-                                                "📍 *$recipe*:\n" + items.joinToString("\n") { "• ${it.name}" }
-                                            }.joinToString("\n\n")
-
-                                val sendIntent: Intent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, shareText)
-                                    type = "text/plain"
-                                }
-                                val shareIntent = Intent.createChooser(sendIntent, null)
-                                context.startActivity(shareIntent)
-                            }) {
-                                Icon(Icons.Default.Share, contentDescription = "שתף רשימה", tint = MaterialTheme.colorScheme.primary)
-                            }
-                        }
-                        if (shoppingListItems.isNotEmpty()) {
-                            if (shoppingListItems.any { it.isChecked }) {
-                                TextButton(onClick = { viewModel.clearCheckedShoppingItems() }) {
-                                    Text("מחק מסומנים", color = MaterialTheme.colorScheme.primary)
-                                }
-                            }
-                            TextButton(onClick = { viewModel.clearShoppingList() }) {
-                                Text("נקה הכל", color = Color.Red)
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (shoppingListItems.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("רשימת הקניות ריקה", color = MaterialTheme.colorScheme.onSurface)
-                    }
-                } else {
-                    // מפצלים למצרכים שלא נקנו ולמצרכים שנקנו
-                    val uncheckedGroups = shoppingListItems.filter { !it.isChecked }.groupBy { it.recipeName ?: "מצרכים כלליים" }
-                    val checkedGroups = shoppingListItems.filter { it.isChecked }.groupBy { it.recipeName ?: "מצרכים כלליים" }
-
-                    LazyColumn(modifier = Modifier.fillMaxHeight(0.8f)) {
-
-                        // קודם מציגים את כל המצרכים שלא סומנו (לפי מתכונים)
-                        uncheckedGroups.forEach { (recipeName, recipeItems) ->
-                            item(key = "header_unchecked_$recipeName") {
-                                Text(
-                                    text = recipeName,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .padding(top = 16.dp, bottom = 4.dp)
-                                        .animateItem(
-                                            placementSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
-                                        )
-                                )
-                            }
-
-                            items(recipeItems, key = { it.id }) { item ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .animateItem(
-                                            placementSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
-                                        )
-                                        .clickable { viewModel.toggleShoppingItem(item.id) }
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Checkbox(
-                                        checked = item.isChecked,
-                                        onCheckedChange = { viewModel.toggleShoppingItem(item.id) }
-                                    )
-                                    Text(
-                                        text = item.name,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f).padding(start = 8.dp)
-                                    )
-                                    IconButton(onClick = { viewModel.removeShoppingItem(item.id) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "מחק", tint = MaterialTheme.colorScheme.onSurface)
-                                    }
-                                }
-                            }
-                        }
-
-                        // עכשיו מציגים בתחתית הרשימה את כל המצרכים שכן סומנו
-                        if (checkedGroups.isNotEmpty()) {
-                            item(key = "divider_checked") {
-                                HorizontalDivider(
-                                    modifier = Modifier
-                                        .padding(vertical = 16.dp)
-                                        .animateItem(
-                                            placementSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
-                                        )
-                                )
-                            }
-
-                            checkedGroups.forEach { (recipeName, recipeItems) ->
-                                item(key = "header_checked_$recipeName") {
-                                    Text(
-                                        text = "$recipeName (נקנה)",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier
-                                            .padding(top = 8.dp, bottom = 4.dp)
-                                            .animateItem(
-                                                placementSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
-                                            )
-                                    )
-                                }
-
-                                items(recipeItems, key = { "checked_${it.id}" }) { item ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .animateItem(
-                                                placementSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
-                                            )
-                                            .clickable { viewModel.toggleShoppingItem(item.id) }
-                                            .padding(vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Checkbox(
-                                            checked = item.isChecked,
-                                            onCheckedChange = { viewModel.toggleShoppingItem(item.id) },
-                                            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
-                                        )
-                                        Text(
-                                            text = item.name,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            textDecoration = TextDecoration.LineThrough,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.weight(1f).padding(start = 8.dp)
-                                        )
-                                        IconButton(onClick = { viewModel.removeShoppingItem(item.id) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "מחק", tint = MaterialTheme.colorScheme.onSurface)
-                                    }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     if (showPasteSheet) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(onDismissRequest = { setShowPasteSheet(false) }, sheetState = sheetState) {
-            var manualTitle by rememberSaveable { mutableStateOf("") }
-            var manualIngredients by rememberSaveable { mutableStateOf("") }
-            var manualSteps by rememberSaveable { mutableStateOf("") }
-            var pastedRecipeText by rememberSaveable { mutableStateOf("") }
-            fun updatePastedText(text: String) { pastedRecipeText = text }
-            var selectedSheetTags by remember { mutableStateOf(setOf<String>()) }
-            val scrollState = rememberScrollState()
-            var manualImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
-            val context = LocalContext.current
-            val photoPickerLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.PickVisualMedia(),
-                onResult = { uri ->
-                    if (uri != null) {
-                        try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (e: SecurityException) { e.printStackTrace() }
-                        manualImageUrl = uri.toString()
-                    }
-                }
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .imePadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text("הוספת מתכון", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val manualButtonModifier = Modifier.weight(1f)
-                    if (useManualInput) {
-                        Button(onClick = { }, modifier = manualButtonModifier) { Text("הזנה ידנית") }
-                    } else {
-                        OutlinedButton(
-                            onClick = {
-                                useManualInput = true
-                                prefs.edit { putBoolean("use_manual_input", true) }
-                            },
-                            modifier = manualButtonModifier
-                        ) { Text("הזנה ידנית") }
-                    }
-                    val pasteButtonModifier = Modifier.weight(1f)
-                    if (!useManualInput) {
-                        Button(onClick = { }, modifier = pasteButtonModifier) { Text("הדבקת טקסט") }
-                    } else {
-                        OutlinedButton(
-                            onClick = {
-                                useManualInput = false
-                                prefs.edit { putBoolean("use_manual_input", false) }
-                            },
-                            modifier = pasteButtonModifier
-                        ) { Text("הדבקת טקסט") }
-                    }
-                }
-                if (manualImageUrl != null) {
-                    Box(modifier = Modifier.fillMaxWidth().height(150.dp)) {
-                        AsyncImage(model = manualImageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)))
-                        IconButton(onClick = { manualImageUrl = null }, modifier = Modifier.align(Alignment.TopEnd).background(Color.Black.copy(alpha=0.5f), CircleShape)) { Icon(Icons.Default.Close, tint=Color.White, contentDescription=null) }
-                    }
-                } else {
-                    OutlinedButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.AddPhotoAlternate, contentDescription=null); Spacer(modifier=Modifier.width(8.dp)); Text("הוסף תמונה למתכון (אופציונלי)") }
-                }
-                Text("תגיות (אופציונלי):", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    items(predefinedTags) { tag -> FilterChip(selected = selectedSheetTags.contains(tag), onClick = { selectedSheetTags = if (selectedSheetTags.contains(tag)) selectedSheetTags - tag else selectedSheetTags + tag }, label = { Text(tag) }) }
-                }
-
-                if (useManualInput) {
-                    OutlinedTextField(value = manualTitle, onValueChange = { manualTitle = it }, label = { Text("כותרת המתכון") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                    OutlinedTextField(value = manualIngredients, onValueChange = { manualIngredients = it }, label = { Text("מצרכים (שורה לכל מצרך)") }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 5)
-                    OutlinedTextField(value = manualSteps, onValueChange = { manualSteps = it }, label = { Text("הוראות הכנה (שורה לכל שלב)") }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 5)
-                    Button(onClick = { viewModel.saveManualRecipe(manualTitle, manualIngredients, manualSteps, selectedSheetTags.toList(), manualImageUrl); setShowPasteSheet(false) }, modifier = Modifier.fillMaxWidth(), enabled = manualTitle.isNotBlank() || manualIngredients.isNotBlank()) { Icon(Icons.Default.Save, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text(text = "שמור מתכון") }
-                } else {
-                    OutlinedTextField(value = pastedRecipeText, onValueChange = { updatePastedText(it) }, modifier = Modifier.fillMaxWidth(), label = { Text("טקסט המתכון") }, minLines = 6, maxLines = 10)
-                    Button(onClick = { onExtractFromText(pastedRecipeText, selectedSheetTags.toList(), manualImageUrl); setShowPasteSheet(false) }, enabled = pastedRecipeText.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("חלץ מתכון מטקסט") }
-                }
-                Spacer(modifier = Modifier.height(32.dp))
+        AddRecipeSheet(
+            onDismiss = { setShowPasteSheet(false) },
+            onSaveManual = { title, ingredients, steps, tags, image, notes ->
+                viewModel.saveManualRecipe(title, ingredients, steps, tags, image, notes)
+                setShowPasteSheet(false)
+            },
+            onExtractFromText = { text, tags, image, notes ->
+                onExtractFromText(text, tags, image, notes)
+                setShowPasteSheet(false)
             }
-        }
+        )
     }
 
     if (recipeToDelete != null) {
         AlertDialog(
-            onDismissRequest = { updateRecipeToDelete(null) }, title = { Text("מחיקת מתכון") }, text = { Text("בטוח שברצונך למחוק?") },
-            confirmButton = { TextButton(onClick = { onDeleteRecipe(recipeToDelete!!.id); updateRecipeToDelete(null) }) { Text("מחק", color = Color.Red) } },
-            dismissButton = { TextButton(onClick = { updateRecipeToDelete(null) }) { Text("בטל") } }
+            onDismissRequest = { updateRecipeToDelete(null) }, title = { Text(stringResource(id = R.string.delete_recipe_title)) }, text = { Text(stringResource(id = R.string.delete_recipe_confirmation)) },
+            confirmButton = { TextButton(onClick = { onDeleteRecipe(recipeToDelete!!.id); updateRecipeToDelete(null) }) { Text(stringResource(id = R.string.delete), color = Color.Red) } },
+            dismissButton = { TextButton(onClick = { updateRecipeToDelete(null) }) { Text(stringResource(id = R.string.cancel)) } }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddRecipeSheet(
+    onDismiss: () -> Unit,
+    onSaveManual: (String, String, String, List<String>, String?, String) -> Unit,
+    onExtractFromText: (String, List<String>, String?, String) -> Unit
+) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var title by remember { mutableStateOf("") }
+    var ingredients by remember { mutableStateOf("") }
+    var steps by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var recipeText by remember { mutableStateOf("") }
+    var selectedTags by remember { mutableStateOf(setOf<String>()) }
+    var imageUrl by remember { mutableStateOf<String?>(null) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            imageUrl = uri?.toString()
+        }
+    )
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val viewModel: MainViewModel = viewModel()
+    val predefinedTags = viewModel.predefinedTags
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        modifier = Modifier.fillMaxHeight(0.9f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(
+                text = stringResource(id = R.string.add_recipe),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            PrimaryTabRow(selectedTabIndex = selectedTab) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text(stringResource(id = R.string.manual_entry)) }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text(stringResource(id = R.string.text_paste)) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (selectedTab == 0) {
+                // Manual Entry
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(stringResource(id = R.string.recipe_title_label)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = ingredients,
+                    onValueChange = { ingredients = it },
+                    label = { Text(stringResource(id = R.string.ingredients_edit_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = steps,
+                    onValueChange = { steps = it },
+                    label = { Text(stringResource(id = R.string.instructions_edit_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text(stringResource(id = R.string.notes_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2
+                )
+            } else {
+                // Text Paste
+                OutlinedTextField(
+                    value = recipeText,
+                    onValueChange = { recipeText = it },
+                    label = { Text(stringResource(id = R.string.recipe_text_label)) },
+                    placeholder = { Text(stringResource(id = R.string.paste_recipe_placeholder)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 8
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text(stringResource(id = R.string.notes_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Image Picker Section
+            Text(text = stringResource(id = R.string.add_image), style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            if (imageUrl != null) {
+                Box(modifier = Modifier.size(120.dp)) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    IconButton(
+                        onClick = { imageUrl = null },
+                        modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), CircleShape).size(24.dp)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                }
+            } else {
+                OutlinedButton(
+                    onClick = {
+                        photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(id = R.string.add_image_optional))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(text = stringResource(id = R.string.tags_optional), style = MaterialTheme.typography.titleMedium)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                predefinedTags.forEach { tag ->
+                    FilterChip(
+                        selected = selectedTags.contains(tag),
+                        onClick = {
+                            selectedTags = if (selectedTags.contains(tag)) selectedTags - tag else selectedTags + tag
+                        },
+                        label = { Text(tag) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    if (selectedTab == 0) {
+                        onSaveManual(title, ingredients, steps, selectedTags.toList(), imageUrl, notes)
+                    } else {
+                        onExtractFromText(recipeText, selectedTags.toList(), imageUrl, notes)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                enabled = if (selectedTab == 0) title.isNotBlank() else recipeText.isNotBlank()
+            ) {
+                Text(text = stringResource(id = if (selectedTab == 0) R.string.save_recipe_button else R.string.extract_recipe_from_text))
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+        }
     }
 }
 
@@ -769,11 +707,11 @@ fun RecipeCardItem(
                         modifier = Modifier.size(24.dp).padding(start = 4.dp)
                     ) {
                         if (recipe.id == -2L) {
-                            Icon(Icons.Default.Groups, contentDescription = "מתכון משותף", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Groups, contentDescription = stringResource(id = R.string.shared_recipe), tint = MaterialTheme.colorScheme.primary)
                         } else {
                             Icon(
                                 imageVector = if (recipe.isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,
-                                contentDescription = "מועדף",
+                                contentDescription = stringResource(id = R.string.favorite),
                                 tint = if (recipe.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }

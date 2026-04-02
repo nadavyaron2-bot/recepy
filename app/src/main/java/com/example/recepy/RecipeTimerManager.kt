@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,10 +27,8 @@ object RecipeTimerManager {
         isRunning.value = true
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel("timer_channel", "טיימר מתכונים", NotificationManager.IMPORTANCE_HIGH)
-            notificationManager.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel("timer_channel", "טיימר מתכונים", NotificationManager.IMPORTANCE_HIGH)
+        notificationManager.createNotificationChannel(channel)
 
         // במקביל מפעילים את ה-Service שלנו שיצייר את הבועה וישמור על התהליך חי
         val intent = Intent(context, TimerService::class.java).apply {
@@ -39,11 +36,7 @@ object RecipeTimerManager {
             putExtra("SECONDS", seconds)
             putExtra("TITLE", title)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        context.startForegroundService(intent)
 
         timerJob = CoroutineScope(Dispatchers.IO).launch {
             while (timeRemaining.value > 0 && isRunning.value) {

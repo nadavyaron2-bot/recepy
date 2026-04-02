@@ -83,13 +83,22 @@ fun RecipeDetailScreen(
     viewModel: MainViewModel = viewModel()
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(showDeleteDialog) {}
 
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
+    val savedToHistoryMsg = stringResource(R.string.saved_to_history)
+    val ingredientsAddedToCartMsg = stringResource(R.string.ingredients_added_to_cart)
+    val allIngredientsCheckedMsg = stringResource(R.string.all_ingredients_checked)
+    val ratingSavedMsg = stringResource(R.string.rating_saved)
+    val notesSavedMsg = stringResource(R.string.notes_saved)
+    val overlayPermissionRequestMsg = stringResource(R.string.overlay_permission_request)
+
     val predefinedTags = viewModel.predefinedTags
 
     var isEditing by remember(isSaved) { mutableStateOf(!isSaved) }
+    LaunchedEffect(isEditing) {}
     var quantityMultiplier by remember { mutableFloatStateOf(1f) }
 
     var editedTitle by remember(recipe?.id) { mutableStateOf(recipe?.title ?: "") }
@@ -110,39 +119,43 @@ fun RecipeDetailScreen(
     var isShareCardReady by remember(recipe?.id) { mutableStateOf(false) }
 
     var showCookingMode by remember { mutableStateOf(false) }
+    LaunchedEffect(showCookingMode) {}
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     var showGroupShareDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(showGroupShareDialog) {}
     val groups by viewModel.groups.collectAsState()
 
     if (showGroupShareDialog) {
         AlertDialog(
             onDismissRequest = { showGroupShareDialog = false },
-            title = { Text("שתף לקבוצה") },
+            title = { Text(stringResource(R.string.share_to_group)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (groups.isEmpty()) {
-                        Text("לא הצטרפת לאף קבוצה עדיין. ניתן להצטרף ממסך הקבוצות.")
+                        Text(stringResource(R.string.no_groups_yet))
                     } else {
                         groups.forEach { group ->
+                            val groupName = group["name"] as String
+                            val successMsg = stringResource(R.string.shared_to_group_success, groupName)
                             Button(
                                 onClick = {
                                     recipe?.let { viewModel.shareRecipeToGroup(it, group["id"] as String) }
                                     showGroupShareDialog = false
-                                    Toast.makeText(context, "שותף לקבוצה ${group["name"]}!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(Icons.Default.Group, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(group["name"] as String)
+                                Text(groupName)
                             }
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { showGroupShareDialog = false }) { Text("ביטול") } }
+            confirmButton = { TextButton(onClick = { showGroupShareDialog = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
@@ -160,7 +173,7 @@ fun RecipeDetailScreen(
                             onImageUrlChange = { editedImageUrl = it },
                             onBack = onBack,
                             onShare = {
-                                shareRecipeText(context, buildShareText(recipe.copy(
+                                shareRecipeText(context, buildShareText(context, recipe.copy(
                                     title = editedTitle,
                                     ingredients = editedIngredients.split("\n").map { it.trim() }.filter { it.isNotBlank() },
                                     steps = editedSteps.split("\n").map { it.trim() }.filter { it.isNotBlank() }
@@ -173,7 +186,7 @@ fun RecipeDetailScreen(
                                         shareRecipeImage(context, bitmap, recipe.title, recipe.sourceUrl)
                                     }
                                 } else {
-                                    Toast.makeText(context, "מכין את התמונה...", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, R.string.preparing_image, Toast.LENGTH_SHORT).show()
                                 }
                             },
                                     onEditStart = { isEditing = true },
@@ -203,12 +216,12 @@ fun RecipeDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Timer, contentDescription = "Timer Active")
+                                        Icon(Icons.Default.Timer, contentDescription = stringResource(R.string.timer_active_desc))
                                         Spacer(modifier = Modifier.width(12.dp))
                                         val minutes = timerSeconds / 60
                                         val seconds = timerSeconds % 60
                                         Text(
-                                            text = String.format(Locale.US, "%02d:%02d", minutes, seconds),
+                                            text = stringResource(R.string.timer_format, minutes, seconds),
                                             style = MaterialTheme.typography.headlineMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -217,11 +230,11 @@ fun RecipeDetailScreen(
                                         IconButton(onClick = { RecipeTimerManager.isRunning.value = !isTimerRunning }) {
                                             Icon(
                                                 imageVector = if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                                contentDescription = "Play/Pause"
+                                                contentDescription = stringResource(R.string.play_pause_desc)
                                             )
                                         }
                                         IconButton(onClick = { RecipeTimerManager.stopTimer() }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Cancel Timer")
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel_timer_desc))
                                         }
                                     }
                                 }
@@ -255,7 +268,7 @@ fun RecipeDetailScreen(
                                     ) {
                                         Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("ביטול")
+                                        Text(stringResource(R.string.cancel))
                                     }
 
                                     Button(
@@ -276,7 +289,7 @@ fun RecipeDetailScreen(
                                     ) {
                                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("שמור שינויים")
+                                        Text(stringResource(R.string.save_changes))
                                     }
                                 }
                             }
@@ -313,28 +326,28 @@ fun RecipeDetailScreen(
                             .padding(innerPadding),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
-                        if (!isEditing && isSaved) {
-                            item {
-                                Button(
-                                    onClick = {
-                                        val cookedRecipe = recipe.copy(lastCooked = System.currentTimeMillis())
-                                        onSave(cookedRecipe)
-                                        Toast.makeText(context, "נשמר בהיסטוריית הבישול!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                                ) {
-                                    Icon(Icons.Default.Restaurant, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("סיימתי לבשל! (הקפץ לראש הרשימה)", fontWeight = FontWeight.Bold)
-                                }
+                    if (isSaved) {
+                        item {
+                            Button(
+                                onClick = {
+                                    val cookedRecipe = recipe.copy(lastCooked = System.currentTimeMillis())
+                                    onSave(cookedRecipe)
+                                    Toast.makeText(context, savedToHistoryMsg, Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                            ) {
+                                Icon(Icons.Default.Restaurant, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.finish_cooking_button), fontWeight = FontWeight.Bold)
                             }
                         }
+                    }
 
                         if (isEditing) {
                             item {
                                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                                    Text("תגיות:", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.tags_label), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                                         items(predefinedTags) { tag ->
                                             FilterChip(
@@ -352,7 +365,7 @@ fun RecipeDetailScreen(
                                 OutlinedTextField(
                                     value = editedIngredients,
                                     onValueChange = { editedIngredients = it },
-                                    label = { Text("מצרכים (שורה לכל מצרך)") },
+                                    label = { Text(stringResource(R.string.ingredients_edit_label)) },
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                                     minLines = 5
                                 )
@@ -361,7 +374,7 @@ fun RecipeDetailScreen(
                                 OutlinedTextField(
                                     value = editedSteps,
                                     onValueChange = { editedSteps = it },
-                                    label = { Text("הוראות הכנה (שורה לכל שלב)") },
+                                    label = { Text(stringResource(R.string.instructions_edit_label)) },
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                                     minLines = 6
                                 )
@@ -447,9 +460,9 @@ fun RecipeDetailScreen(
 
                                             if (ingredientsToAdd.isNotEmpty()) {
                                                 viewModel.addIngredientsToCart(ingredientsToAdd, quantityMultiplier, recipe.title)
-                                                Toast.makeText(context, "המצרכים החסרים נוספו לעגלה!", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, ingredientsAddedToCartMsg, Toast.LENGTH_SHORT).show()
                                             } else {
-                                                Toast.makeText(context, "כל המצרכים כבר סומנו כישנם!", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, allIngredientsCheckedMsg, Toast.LENGTH_SHORT).show()
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
@@ -457,7 +470,7 @@ fun RecipeDetailScreen(
                                     ) {
                                         Icon(Icons.Default.AddShoppingCart, contentDescription = null, tint = Color.White)
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("הוסף חסרים לעגלת קניות", fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text(stringResource(R.string.add_missing_to_cart), fontWeight = FontWeight.Bold, color = Color.White)
                                     }
                                 }
                             }
@@ -501,7 +514,7 @@ fun RecipeDetailScreen(
                                                 OutlinedButton(
                                                     onClick = {
                                                         if (!Settings.canDrawOverlays(context)) {
-                                                            Toast.makeText(context, "כדי לראות את הבועה הצפה, אנא אשר הרשאה זו", Toast.LENGTH_LONG).show()
+                                                            Toast.makeText(context, overlayPermissionRequestMsg, Toast.LENGTH_LONG).show()
                                                             val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${context.packageName}".toUri())
                                                             context.startActivity(intent)
                                                         } else {
@@ -516,7 +529,7 @@ fun RecipeDetailScreen(
                                                 ) {
                                                     Icon(Icons.Default.Timer, contentDescription = "Timer", modifier = Modifier.size(16.dp))
                                                     Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("הפעל טיימר ל-$extractedTime דקות", style = MaterialTheme.typography.bodySmall)
+                                                    Text(stringResource(R.string.start_timer_minutes, extractedTime), style = MaterialTheme.typography.bodySmall)
                                                 }
                                             }
                                         }
@@ -531,9 +544,9 @@ fun RecipeDetailScreen(
                                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                Column(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth()) {
+                                    Column(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth()) {
                                     Text(
-                                        text = "איך יצא? דירוג והערות:",
+                                        text = stringResource(R.string.rating_notes_title),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -549,7 +562,7 @@ fun RecipeDetailScreen(
                                                     .size(40.dp)
                                                     .clickable {
                                                         onSave(recipe.copy(rating = i))
-                                                        Toast.makeText(context, "הדירוג נשמר!", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, ratingSavedMsg, Toast.LENGTH_SHORT).show()
                                                     }
                                             )
                                         }
@@ -562,7 +575,7 @@ fun RecipeDetailScreen(
                                     OutlinedTextField(
                                         value = localNotes,
                                         onValueChange = { localNotes = it },
-                                        label = { Text("הערות אישיות לפעם הבאה...") },
+                                        label = { Text(stringResource(R.string.notes_hint)) },
                                         modifier = Modifier.fillMaxWidth(),
                                         minLines = 3
                                     )
@@ -571,14 +584,14 @@ fun RecipeDetailScreen(
                                         Button(
                                             onClick = {
                                                 onSave(recipe.copy(notes = localNotes))
-                                                Toast.makeText(context, "ההערות נשמרו!", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, notesSavedMsg, Toast.LENGTH_SHORT).show()
                                             },
                                             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                                         ) {
                                             Icon(Icons.Default.Save, contentDescription = null)
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text("שמור הערות")
+                                            Text(stringResource(R.string.save_notes))
                                         }
                                     }
                                 }
@@ -675,7 +688,7 @@ fun CookingModeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel))
                 }
                 Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
                     Text(
@@ -686,7 +699,7 @@ fun CookingModeScreen(
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "מצב בישול פעיל",
+                        text = stringResource(R.string.cooking_mode_active),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -709,7 +722,7 @@ fun CookingModeScreen(
                             val mins = timerSeconds / 60
                             val secs = timerSeconds % 60
                             Text(
-                                String.format(Locale.US, "%02d:%02d", mins, secs),
+                                stringResource(R.string.timer_format, mins, secs),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -755,7 +768,7 @@ fun CookingModeScreen(
                                         Icon(Icons.Default.ShoppingCart, null, tint = MaterialTheme.colorScheme.primary)
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            "מה צריך?",
+                                            stringResource(R.string.what_is_needed),
                                             style = MaterialTheme.typography.headlineSmall,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -790,7 +803,7 @@ fun CookingModeScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            "שלב $page מתוך ${recipe.steps.size}",
+                                            stringResource(R.string.step_x_of_y, page, recipe.steps.size),
                                             style = MaterialTheme.typography.labelLarge,
                                             color = MaterialTheme.colorScheme.secondary
                                         )
@@ -800,7 +813,7 @@ fun CookingModeScreen(
                                             onClick = {
                                                 completedSteps = if (isDone) completedSteps - stepIndex else completedSteps + stepIndex
                                             },
-                                            label = { Text(if (isDone) "בוצע!" else "סמן כבוצע") },
+                                            label = { Text(if (isDone) stringResource(R.string.done_label) else stringResource(R.string.mark_as_done)) },
                                             leadingIcon = if (isDone) {
                                                 { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
                                             } else null
@@ -833,7 +846,7 @@ fun CookingModeScreen(
                                         ) {
                                             Icon(Icons.Default.Timer, null)
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text("הפעל טיימר ל-$timerMins דקות")
+                                            Text(stringResource(R.string.start_timer_minutes, timerMins))
                                         }
                                     }
                                 }
@@ -878,7 +891,7 @@ fun CookingModeScreen(
                         ) {
                             Icon(Icons.Default.Celebration, null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("סיימתי לבשל!", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.finished_cooking_success), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1002,17 +1015,17 @@ fun HeaderSection(
                 if (isEditing) {
                     Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
                     Row(modifier = Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                        IconButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)) { Icon(Icons.Default.Edit, contentDescription = "Change Image", tint = Color.White) }
-                        IconButton(onClick = { onImageUrlChange(null) }, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)) { Icon(Icons.Default.Delete, contentDescription = "Remove Image", tint = Color.White) }
+                        IconButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)) { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.change_image_desc), tint = Color.White) }
+                        IconButton(onClick = { onImageUrlChange(null) }, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)) { Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_image_desc), tint = Color.White) }
                     }
                 }
             } else {
                 Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
                     if (isEditing) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            IconButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.background(MaterialTheme.colorScheme.primary, CircleShape)) { Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Add Image", tint = MaterialTheme.colorScheme.onPrimary) }
+                            IconButton(onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.background(MaterialTheme.colorScheme.primary, CircleShape)) { Icon(Icons.Default.AddPhotoAlternate, contentDescription = stringResource(R.string.add_image), tint = MaterialTheme.colorScheme.onPrimary) }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("הוסף תמונה", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.add_image), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     } else {
                         Text(text = stringResource(id = R.string.no_image), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1034,7 +1047,7 @@ fun HeaderSection(
                 if (alpha < 0.5f || isEditing) {
                     if (isEditing) {
                         OutlinedTextField(
-                            value = title, onValueChange = onTitleChange, label = { Text("כותרת המתכון") },
+                            value = title, onValueChange = onTitleChange, label = { Text(stringResource(R.string.recipe_title_label)) },
                             modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
                             textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             singleLine = true
@@ -1061,24 +1074,24 @@ fun HeaderSection(
             },
             actions = {
                 if (!isEditing) {
-                    IconButton(onClick = onCookingModeStart) { Icon(Icons.Default.RestaurantMenu, "Cooking Mode", tint = contentColor) }
-                    IconButton(onClick = onEditStart) { Icon(Icons.Default.Edit, "Edit Recipe", tint = contentColor) }
-                    if (sourceUrl?.startsWith("http", ignoreCase = true) == true) IconButton(onClick = { onOpenSource(sourceUrl) }) { Icon(Icons.Default.OpenInBrowser, "Open URL", tint = contentColor) }
+                    IconButton(onClick = onCookingModeStart) { Icon(Icons.Default.RestaurantMenu, stringResource(R.string.cooking_mode_desc), tint = contentColor) }
+                    IconButton(onClick = onEditStart) { Icon(Icons.Default.Edit, stringResource(R.string.edit_recipe_desc), tint = contentColor) }
+                    if (sourceUrl?.startsWith("http", ignoreCase = true) == true) IconButton(onClick = { onOpenSource(sourceUrl) }) { Icon(Icons.Default.OpenInBrowser, stringResource(R.string.open_url_desc), tint = contentColor) }
                     IconButton(onClick = { showShareOptions = true }) { Icon(Icons.Default.Share, stringResource(id = R.string.share_recipe), tint = contentColor) }
                     
                     DropdownMenu(expanded = showShareOptions, onDismissRequest = { showShareOptions = false }) {
                         DropdownMenuItem(
-                            text = { Text("שתף כטקסט") },
+                            text = { Text(stringResource(R.string.share_as_text)) },
                             onClick = { onShare(); showShareOptions = false },
                             leadingIcon = { Icon(Icons.Default.TextFields, null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("שתף כתמונה") },
+                            text = { Text(stringResource(R.string.share_as_image)) },
                             onClick = { onShareImage(); showShareOptions = false },
                             leadingIcon = { Icon(Icons.Default.Image, null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("שתף לקבוצה") },
+                            text = { Text(stringResource(R.string.share_to_group)) },
                             onClick = { onShareToGroup(); showShareOptions = false },
                             leadingIcon = { Icon(Icons.Default.Group, null) }
                         )
@@ -1112,8 +1125,8 @@ fun shareRecipeImage(context: Context, bitmap: Bitmap, title: String, sourceUrl:
     FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     
-    val sourcePart = if (sourceUrl.startsWith("http", ignoreCase = true)) "\n🔗 מקור: $sourceUrl" else ""
-    val shareBody = "🍽️ $title$sourcePart\nשותף מהאפליקציה Recepy!"
+    val sourcePart = if (sourceUrl.startsWith("http", ignoreCase = true)) "\n" + context.getString(R.string.source_prefix, sourceUrl) else ""
+    val shareBody = "🍽️ $title$sourcePart\n" + context.getString(R.string.shared_from_app_branding)
 
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
@@ -1121,18 +1134,21 @@ fun shareRecipeImage(context: Context, bitmap: Bitmap, title: String, sourceUrl:
         putExtra(Intent.EXTRA_TEXT, shareBody)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "שתף מתכון"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_recipe_chooser_title)))
 }
 
-fun buildShareText(recipe: Recipe): String {
+fun buildShareText(context: Context, recipe: Recipe): String {
     val ingredientsText = recipe.ingredients.joinToString(separator = "\n") { "• $it" }
     val stepsText = recipe.steps.mapIndexed { index, step -> "${index + 1}. $step" }.joinToString(separator = "\n")
     
     val sourcePart = if (recipe.sourceUrl.startsWith("http", ignoreCase = true)) {
-        "\n🔗 מקור: ${recipe.sourceUrl}\n"
+        "\n" + context.getString(R.string.source_prefix, recipe.sourceUrl) + "\n"
     } else ""
 
-    return "🍽️ ${recipe.title}\n$sourcePart\nמצרכים:\n$ingredientsText\n\nהוראות הכנה:\n$stepsText"
+    val ingredientsTitle = context.getString(R.string.ingredients_title)
+    val instructionsTitle = context.getString(R.string.instructions_title)
+
+    return "🍽️ ${recipe.title}\n$sourcePart\n$ingredientsTitle:\n$ingredientsText\n\n$instructionsTitle:\n$stepsText"
 }
 
 fun shareRecipeText(context: Context, shareText: String) {
@@ -1218,7 +1234,7 @@ fun RecipeShareCard(recipe: Recipe, modifier: Modifier = Modifier, onImageReady:
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "מצרכים",
+                            text = stringResource(R.string.ingredients_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary
@@ -1260,7 +1276,7 @@ fun RecipeShareCard(recipe: Recipe, modifier: Modifier = Modifier, onImageReady:
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "הוראות הכנה",
+                            text = stringResource(R.string.instructions_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary

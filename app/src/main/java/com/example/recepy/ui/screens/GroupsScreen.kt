@@ -16,8 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.recepy.R
 import com.example.recepy.data.repository.Recipe
 import com.example.recepy.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
@@ -41,14 +43,25 @@ fun GroupsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("קבוצות שיתוף") },
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(R.string.groups_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
+                    val shoppingListItems by viewModel.shoppingList.collectAsState()
+                    IconButton(onClick = { viewModel.setShowShoppingList(true) }) {
+                        BadgedBox(
+                            badge = { if (shoppingListItems.isNotEmpty()) Badge { Text(shoppingListItems.size.toString()) } }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = stringResource(id = R.string.shopping_list)
+                            )
+                        }
+                    }
                     if (isRefreshing) {
                         CircularProgressIndicator(
                             modifier = Modifier.padding(12.dp).size(24.dp),
@@ -63,7 +76,7 @@ fun GroupsScreen(
                             isRefreshing = true
                             viewModel.fetchGroups()
                         }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "רענן")
+                            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                         }
                     }
                 }
@@ -76,14 +89,14 @@ fun GroupsScreen(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 ) {
-                    Icon(Icons.Default.GroupAdd, contentDescription = "הצטרף לקבוצה")
+                    Icon(Icons.Default.GroupAdd, contentDescription = stringResource(R.string.join_group))
                 }
                 FloatingActionButton(
                     onClick = { showCreateDialog = true },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "צור קבוצה")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.create_group))
                 }
             }
         }
@@ -104,12 +117,12 @@ fun GroupsScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "עדיין לא הצטרפת לאף קבוצה",
+                        stringResource(R.string.no_groups_joined),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     TextButton(onClick = { showJoinDialog = true }) {
-                        Text("הצטרף לקבוצה קיימת")
+                        Text(stringResource(R.string.join_existing_group))
                     }
                 }
             }
@@ -163,19 +176,19 @@ fun GroupsScreen(
         var password by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showJoinDialog = false },
-            title = { Text("הצטרפות לקבוצה") },
+            title = { Text(stringResource(R.string.join_group_dialog_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = groupName,
                         onValueChange = { groupName = it },
-                        label = { Text("שם הקבוצה") },
+                        label = { Text(stringResource(R.string.group_name_label)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("סיסמה") },
+                        label = { Text(stringResource(R.string.password_label)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -187,15 +200,16 @@ fun GroupsScreen(
                         showJoinDialog = false
                     }
                 }) {
-                    Text("הצטרף")
+                    Text(stringResource(R.string.join_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showJoinDialog = false }) {
-                    Text("ביטול")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
+        LaunchedEffect(showJoinDialog) { }
     }
 
     if (showCreateDialog) {
@@ -203,19 +217,19 @@ fun GroupsScreen(
         var password by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            title = { Text("יצירת קבוצה חדשה") },
+            title = { Text(stringResource(R.string.create_group_dialog_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = groupName,
                         onValueChange = { groupName = it },
-                        label = { Text("שם הקבוצה") },
+                        label = { Text(stringResource(R.string.group_name_label)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("סיסמה (לבחירתך)") },
+                        label = { Text(stringResource(R.string.group_password_hint)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -227,15 +241,16 @@ fun GroupsScreen(
                         showCreateDialog = false
                     }
                 }) {
-                    Text("צור")
+                    Text(stringResource(R.string.create_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCreateDialog = false }) {
-                    Text("ביטול")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
+        LaunchedEffect(showCreateDialog) { }
     }
 }
 
@@ -281,23 +296,23 @@ fun GroupCard(
                         Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         if (isCreator) {
                             Spacer(modifier = Modifier.width(8.dp))
-                            Icon(Icons.Default.AdminPanelSettings, "ניהול", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.AdminPanelSettings, stringResource(R.string.admin_label), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                         }
                     }
-                    Text("קוד: $id", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.group_code_label, id), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row {
                     if (isCreator) {
                         IconButton(onClick = { showPermissionsDialog = true }) {
-                            Icon(Icons.Default.Security, contentDescription = "הגדרות הרשאה", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Security, contentDescription = stringResource(R.string.group_permissions_settings), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     IconButton(onClick = { showLeaveConfirm = true }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "עזוב קבוצה", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = stringResource(R.string.leave_group), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (isCreator) {
                         IconButton(onClick = { showDeleteConfirm = true }) {
-                            Icon(Icons.Default.DeleteForever, contentDescription = "מחק קבוצה", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.DeleteForever, contentDescription = stringResource(R.string.delete_group), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -313,7 +328,7 @@ fun GroupCard(
                 ) {
                     Icon(Icons.Default.PostAdd, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("הוסף מתכון לקבוצה")
+                    Text(stringResource(R.string.add_recipe_to_group))
                 }
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -323,14 +338,14 @@ fun GroupCard(
             
             if (recipes.isEmpty()) {
                 Text(
-                    "אין מתכונים משותפים בקבוצה זו עדיין",
+                    stringResource(R.string.no_shared_recipes),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             } else {
                 Text(
-                    "מתכונים משותפים:",
+                    stringResource(R.string.shared_recipes_title),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -357,28 +372,30 @@ fun GroupCard(
             onShare = onShareRecipe,
             viewModel = viewModel
         )
+        LaunchedEffect(showAddRecipeDialog) { }
     }
 
     if (showPermissionsDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionsDialog = false },
-            title = { Text("הגדרות הרשאת קבוצה") },
+            title = { Text(stringResource(R.string.group_permissions_settings)) },
             text = {
                 Column {
-                    PermissionOption("צפייה בלבד", 0, permissions) { onUpdatePermissions(0); showPermissionsDialog = false }
-                    PermissionOption("צפייה והוספה", 1, permissions) { onUpdatePermissions(1); showPermissionsDialog = false }
-                    PermissionOption("ניהול מלא (הוספה ומחיקה)", 2, permissions) { onUpdatePermissions(2); showPermissionsDialog = false }
+                    PermissionOption(stringResource(R.string.perm_view_only), 0, permissions) { onUpdatePermissions(0); showPermissionsDialog = false }
+                    PermissionOption(stringResource(R.string.perm_view_add), 1, permissions) { onUpdatePermissions(1); showPermissionsDialog = false }
+                    PermissionOption(stringResource(R.string.perm_full_access), 2, permissions) { onUpdatePermissions(2); showPermissionsDialog = false }
                 }
             },
             confirmButton = {}
         )
+        LaunchedEffect(showPermissionsDialog) { }
     }
 
     if (showLeaveConfirm) {
         AlertDialog(
             onDismissRequest = { showLeaveConfirm = false },
-            title = { Text("עזיבת קבוצה") },
-            text = { Text("האם אתה בטוח שברצונך לעזוב את הקבוצה '$name'?") },
+            title = { Text(stringResource(R.string.leave_group_confirm_title)) },
+            text = { Text(stringResource(R.string.leave_group_confirm_message, name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -387,22 +404,23 @@ fun GroupCard(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("עזוב")
+                    Text(stringResource(R.string.leave_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLeaveConfirm = false }) {
-                    Text("ביטול")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
+        LaunchedEffect(showLeaveConfirm) { }
     }
 
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("מחיקת קבוצה לצמיתות") },
-            text = { Text("האם אתה בטוח שברצונך למחוק את הקבוצה '$name' לכל המשתמשים? פעולה זו אינה ניתנת לביטול.") },
+            title = { Text(stringResource(R.string.delete_group_confirm_title)) },
+            text = { Text(stringResource(R.string.delete_group_confirm_message, name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -411,15 +429,16 @@ fun GroupCard(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("מחק לצמיתות")
+                    Text(stringResource(R.string.delete_permanently))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("ביטול")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
+        LaunchedEffect(showDeleteConfirm) { }
     }
 }
 
@@ -460,7 +479,7 @@ fun SharedRecipeItem(recipe: Recipe, canDelete: Boolean, onAdd: () -> Unit, onDe
             Row {
                 if (canDelete) {
                     IconButton(onClick = { showDeleteConfirm = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "מחק מהקבוצה", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_from_group), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
                     }
                 }
 
@@ -473,7 +492,7 @@ fun SharedRecipeItem(recipe: Recipe, canDelete: Boolean, onAdd: () -> Unit, onDe
                 ) {
                     Icon(
                         imageVector = if (added) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
-                        contentDescription = "הוסף לספרייה שלי",
+                        contentDescription = stringResource(R.string.add_to_my_library),
                         tint = if (added) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
                     )
                 }
@@ -484,8 +503,8 @@ fun SharedRecipeItem(recipe: Recipe, canDelete: Boolean, onAdd: () -> Unit, onDe
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("מחיקת מתכון משותף") },
-            text = { Text("האם אתה בטוח שברצונך למחוק את '${recipe.title}' מהקבוצה?") },
+            title = { Text(stringResource(R.string.delete_shared_recipe_title)) },
+            text = { Text(stringResource(R.string.delete_shared_recipe_message, recipe.title)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -494,15 +513,16 @@ fun SharedRecipeItem(recipe: Recipe, canDelete: Boolean, onAdd: () -> Unit, onDe
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("מחק")
+                    Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("ביטול")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
+        LaunchedEffect(showDeleteConfirm) { }
     }
 }
 
@@ -535,13 +555,13 @@ fun AddRecipeToGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("הוספת מתכון לקבוצה") },
+        title = { Text(stringResource(R.string.add_recipe_to_group_dialog)) },
         text = {
             Column(modifier = Modifier.heightIn(max = 400.dp)) {
                 PrimaryScrollableTabRow(selectedTabIndex = selectedTab) {
-                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) { Text("מהרשימה", modifier = Modifier.padding(8.dp)) }
-                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) { Text("קישור", modifier = Modifier.padding(8.dp)) }
-                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }) { Text("טקסט חופשי", modifier = Modifier.padding(8.dp)) }
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) { Text(stringResource(R.string.from_list), modifier = Modifier.padding(8.dp)) }
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) { Text(stringResource(R.string.link_tab), modifier = Modifier.padding(8.dp)) }
+                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }) { Text(stringResource(R.string.free_text_tab), modifier = Modifier.padding(8.dp)) }
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -571,7 +591,7 @@ fun AddRecipeToGroupDialog(
                         OutlinedTextField(
                             value = urlText,
                             onValueChange = { urlText = it },
-                            label = { Text("הדבק קישור למתכון") },
+                            label = { Text(stringResource(R.string.paste_recipe_link)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -579,7 +599,7 @@ fun AddRecipeToGroupDialog(
                         OutlinedTextField(
                             value = freeText,
                             onValueChange = { freeText = it },
-                            label = { Text("הדבק כאן את הטקסט של המתכון") },
+                            label = { Text(stringResource(R.string.paste_recipe_text_hint)) },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3
                         )
@@ -603,12 +623,12 @@ fun AddRecipeToGroupDialog(
                         onDismiss()
                     }
                 }) {
-                    Text("הוסף")
+                    Text(stringResource(R.string.add_button))
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("ביטול") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
