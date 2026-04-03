@@ -357,7 +357,8 @@ fun GroupCard(
                                 recipe = recipe,
                                 canDelete = canDelete,
                                 onAdd = { onAddRecipe(recipe) },
-                                onDelete = { onDeleteRecipe(recipe) }
+                                onDelete = { onDeleteRecipe(recipe) },
+                                viewModel = viewModel
                             )
                         }
                     }
@@ -443,9 +444,13 @@ fun GroupCard(
 }
 
 @Composable
-fun SharedRecipeItem(recipe: Recipe, canDelete: Boolean, onAdd: () -> Unit, onDelete: () -> Unit) {
+fun SharedRecipeItem(recipe: Recipe, canDelete: Boolean, onAdd: () -> Unit, onDelete: () -> Unit, viewModel: MainViewModel) {
 
-    var added by remember { mutableStateOf(false) }
+    val savedRecipes by viewModel.savedRecipes.collectAsState()
+    val isAlreadyInLibrary = remember(recipe, savedRecipes) {
+        savedRecipes.any { it.title.trim().lowercase() == recipe.title.trim().lowercase() }
+    }
+    
     var showDeleteConfirm by remember { mutableStateOf(false) }
     
     Card(
@@ -483,17 +488,24 @@ fun SharedRecipeItem(recipe: Recipe, canDelete: Boolean, onAdd: () -> Unit, onDe
                     }
                 }
 
-                IconButton(
-                    onClick = { 
-                        onAdd()
-                        added = true
-                    },
-                    enabled = !added
-                ) {
+                if (!isAlreadyInLibrary) {
+                    IconButton(
+                        onClick = { 
+                            onAdd()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddCircleOutline,
+                            contentDescription = stringResource(R.string.add_to_my_library),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                } else {
                     Icon(
-                        imageVector = if (added) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
-                        contentDescription = stringResource(R.string.add_to_my_library),
-                        tint = if (added) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.padding(12.dp).size(24.dp)
                     )
                 }
             }

@@ -96,7 +96,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeReportedBug(bug: String) {
         viewModelScope.launch {
-            syncDeveloperDataWithRemote("delete", "bug", bug)
+            syncDeveloperDataWithRemote("remove", "bug", bug)
         }
     }
 
@@ -139,7 +139,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeSuggestedRecipe(query: String) {
         viewModelScope.launch {
-            syncDeveloperDataWithRemote("delete", "request", query)
+            syncDeveloperDataWithRemote("remove", "request", query)
         }
     }
 

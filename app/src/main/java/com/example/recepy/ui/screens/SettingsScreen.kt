@@ -104,7 +104,6 @@ fun SettingsScreen(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     viewModel: MainViewModel
 ) {
-    val shoppingListItems by viewModel.shoppingList.collectAsState()
     val showDeleteDialog = remember { mutableStateOf(false) }
     val selectedDomains = remember { mutableStateOf<Set<String>>(emptySet()) }
     
@@ -295,18 +294,6 @@ fun SettingsScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.setShowShoppingList(true) }) {
-                        BadgedBox(
-                            badge = { if (shoppingListItems.isNotEmpty()) Badge { Text(shoppingListItems.size.toString()) } }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = stringResource(id = R.string.shopping_list)
-                            )
-                        }
-                    }
                 }
             )
         },
@@ -454,66 +441,7 @@ fun SettingsScreen(
 
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
 
-            // ── Export/Import ─────────────────────────────────────────────────
-            Text(stringResource(R.string.export_import_title))
-            HorizontalDivider(modifier = Modifier.fillMaxWidth())
-
-            // Export
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.export_recipes_title),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = stringResource(R.string.export_recipes_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                OutlinedButton(
-                    onClick = onExportAll,
-                    enabled = domainCounts.isNotEmpty()
-                ) {
-                    Text(stringResource(R.string.export_button))
-                }
-            }
-
-            // Import
-            val filePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
-            ) { uri ->
-                if (uri != null) onImportFromFile(uri)
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.import_recipes_title),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = stringResource(R.string.import_recipes_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                OutlinedButton(
-                    onClick = { filePickerLauncher.launch("application/json") }
-                ) {
-                    Text(stringResource(R.string.import_button))
-                }
-            }
-
-            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+            // ── Updates ──────────────────────────────────────────────────────────
 
             // ── Updates ───────────────────────────────────────────────────────
             Row(

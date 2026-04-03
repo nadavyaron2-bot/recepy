@@ -189,15 +189,15 @@ fun RecipeDetailScreen(
                                     Toast.makeText(context, R.string.preparing_image, Toast.LENGTH_SHORT).show()
                                 }
                             },
-                                    onEditStart = { isEditing = true },
-                                    onCookingModeStart = { showCookingMode = true },
-                                    onShareToGroup = { showGroupShareDialog = true },
-                                    onOpenSource = { uriHandler.openUri(it) },
-                                    sourceUrl = recipe.sourceUrl,
-                                    scrollBehavior = scrollBehavior
-                                )
-                            }
-                        },
+                            onEditStart = { isEditing = true },
+                            onCookingModeStart = { showCookingMode = true },
+                            onShareToGroup = { showGroupShareDialog = true },
+                            onOpenSource = { uriHandler.openUri(it) },
+                            sourceUrl = recipe.sourceUrl,
+                            scrollBehavior = scrollBehavior
+                        )
+                    }
+                },
                 bottomBar = {
                     Column {
                         AnimatedVisibility(

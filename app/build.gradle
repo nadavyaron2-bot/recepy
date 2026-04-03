@@ -12,8 +12,32 @@ android {
         applicationId "com.example.recepy"
         minSdk 26
         targetSdk libs.versions.targetSdk.get().toInteger()
-        versionCode 31
-        versionName "1.2.5"
+        
+        def versionPropsFile = file("${project.rootDir}/version.properties")
+        def vCode = 1
+        def vName = "1.0.0"
+
+        if (versionPropsFile.canRead()) {
+            def versionProps = new Properties()
+            versionProps.load(new FileInputStream(versionPropsFile))
+            vCode = versionProps['versionCode'].toInteger()
+            vName = "${versionProps['major']}.${versionProps['minor']}.${versionProps['patch']}"
+            
+            // Auto-increment for the NEXT build if we are running a release task
+            // or just always if that's what's preferred.
+            // To avoid multiple increments during sync, we check if we're actually building.
+            def runTasks = gradle.startParameter.taskNames
+            if (runTasks.any { it.contains("assemble") || it.contains("bundle") || it.contains("install") }) {
+                def patch = versionProps['patch'].toInteger() + 1
+                vCode = vCode + 1
+                versionProps['patch'] = patch.toString()
+                versionProps['versionCode'] = vCode.toString()
+                versionProps.store(versionPropsFile.newWriter(), null)
+            }
+        }
+
+        versionCode vCode
+        versionName vName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
