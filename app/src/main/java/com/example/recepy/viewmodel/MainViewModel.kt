@@ -86,7 +86,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _reportedBugs = MutableStateFlow<List<String>>(emptyList())
     val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
 
-    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8qsm-oDBilLk4GvsxxpluCCOeRTDUVXjzEzm3LaSd-2XrqlOyoRlkIocYJahyrgxnFA/exec"
+    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznRTb-Ba0Y3GIis2bG_zEBunLEO9yOl-4ka9Aydt8MOtYPTJ0WI5IUGGTwiwoUa3RCFw/exec"
 
     fun reportBug(bug: String) {
         viewModelScope.launch {
@@ -145,22 +145,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun syncDeveloperDataWithRemote(action: String, type: String, description: String) {
         withContext(Dispatchers.IO) {
-            val result = runCatching {Log.d("MainViewModel", "Sending $action for $type to remote...")
+            val result = runCatching {
+                Log.d("MainViewModel", "Sending $action for $type via GET...")
                 org.jsoup.Jsoup.connect(SCRIPT_URL)
                     .ignoreContentType(true)
                     .data("action", action)
                     .data("type", type)
                     .data("description", description)
-                    .data("content", description)
                     .data("date", System.currentTimeMillis().toString())
-                    .method(org.jsoup.Connection.Method.POST)
+                    .method(org.jsoup.Connection.Method.GET) // שינוי ל-GET
                     .followRedirects(true)
-                    .timeout(10000)
+                    .timeout(15000)
                     .execute()
             }
-
+            
             result.onSuccess { response ->
-                Log.d("MainViewModel", "Remote sync success! Response code: ${response.statusCode()}")
+                Log.d("MainViewModel", "Remote sync success! Response: ${response.body()}")
             }.onFailure { e ->
                 Log.e("MainViewModel", "Remote sync failed: ${e.message}", e)
             }
