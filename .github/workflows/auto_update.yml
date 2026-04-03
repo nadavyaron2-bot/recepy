@@ -49,22 +49,22 @@ jobs:
 
       - name: Update Version and Files
         run: |
-          VERSION_PROPS="version.properties"
-          MAJOR=$(grep "major=" "$VERSION_PROPS" | cut -d'=' -f2)
-          MINOR=$(grep "minor=" "$VERSION_PROPS" | cut -d'=' -f2)
-          PATCH=$(grep "patch=" "$VERSION_PROPS" | cut -d'=' -f2)
-          VCODE=$(grep "versionCode=" "$VERSION_PROPS" | cut -d'=' -f2)
-          
-          VNAME="$MAJOR.$MINOR.$PATCH"
+          # Extract version from app/build.gradle
+          BUILD_GRADLE="app/build.gradle"
+          VCODE=$(grep "versionCode" "$BUILD_GRADLE" | head -1 | awk '{print $2}')
+          VNAME=$(grep "versionName" "$BUILD_GRADLE" | head -1 | awk '{print $2}' | tr -d '"')
           
           mkdir -p release_files
-          find . -name "*.apk" -exec cp {} release_files/app-release.apk \;
+          find . -name "*release.apk" -exec cp {} release_files/app-release.apk \;
           
           echo "{
             \"versionCode\": $VCODE,
             \"versionName\": \"$VNAME\",
             \"downloadUrl\": \"https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/releases/app-release.apk\"
           }" > release_files/version.json
+          
+          echo "VCODE=$VCODE" >> $GITHUB_ENV
+          echo "VNAME=$VNAME" >> $GITHUB_ENV
 
       - name: Push to Releases Branch
         run: |
