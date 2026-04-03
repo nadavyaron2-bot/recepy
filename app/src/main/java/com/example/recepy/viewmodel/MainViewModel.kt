@@ -86,7 +86,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _reportedBugs = MutableStateFlow<List<String>>(emptyList())
     val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
 
-    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3HgvroQ6riFF_CzixyU3A4juJtAnLkWwbryKFH7EjseKlG6nIb-LuTHtQCyNfqhTJJw/exec"
+    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbR7O9r5U8URIuyNGEuEFVmhHKZ3tYphDOK_LyDHWZuXPHAW9rwmnD3asWxnUTuIHP/exec"
 
     fun reportBug(bug: String) {
         viewModelScope.launch {

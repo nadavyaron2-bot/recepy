@@ -49,17 +49,20 @@ jobs:
 
       - name: Update Version and Files
         run: |
-          APP_GRADLE=$(find . -name build.gradle | grep "/app/" | head -n 1)
-          # שליפת versionCode ו-versionName מהקוד
-          VERSION_CODE=$(grep "versionCode" "$APP_GRADLE" | head -n 1 | awk '{print $NF}' | tr -d '()= \r\n')
-          VERSION_NAME=$(grep "versionName" "$APP_GRADLE" | head -n 1 | awk '{print $NF}' | tr -d '\"()= \r\n')
+          VERSION_PROPS="version.properties"
+          MAJOR=$(grep "major=" "$VERSION_PROPS" | cut -d'=' -f2)
+          MINOR=$(grep "minor=" "$VERSION_PROPS" | cut -d'=' -f2)
+          PATCH=$(grep "patch=" "$VERSION_PROPS" | cut -d'=' -f2)
+          VCODE=$(grep "versionCode=" "$VERSION_PROPS" | cut -d'=' -f2)
+          
+          VNAME="$MAJOR.$MINOR.$PATCH"
           
           mkdir -p update
           find . -name "*.apk" -not -path "*/update/*" -exec cp {} update/app-release.apk \;
           
           echo "{
-            \"versionCode\": $VERSION_CODE,
-            \"versionName\": \"$VERSION_NAME\",
+            \"versionCode\": $VCODE,
+            \"versionName\": \"$VNAME\",
             \"downloadUrl\": \"https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/master/update/app-release.apk\"
           }" > update/version.json
 
@@ -67,6 +70,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add update/
+          git add update/ version.properties
           git commit -m "Auto-update APK and version.json [skip ci]" || echo "No changes"
-          git push
+          git push origin master

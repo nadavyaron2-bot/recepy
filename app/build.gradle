@@ -19,21 +19,24 @@ android {
 
         if (versionPropsFile.canRead()) {
             def versionProps = new Properties()
-            versionProps.load(new FileInputStream(versionPropsFile))
-            vCode = versionProps['versionCode'].toInteger()
-            vName = "${versionProps['major']}.${versionProps['minor']}.${versionProps['patch']}"
+            versionPropsFile.withInputStream { versionProps.load(it) }
             
-            // Auto-increment for the NEXT build if we are running a release task
-            // or just always if that's what's preferred.
-            // To avoid multiple increments during sync, we check if we're actually building.
             def runTasks = gradle.startParameter.taskNames
-            if (runTasks.any { it.contains("assemble") || it.contains("bundle") || it.contains("install") }) {
+            def isBuilding = runTasks.any { it.contains("assemble") || it.contains("bundle") || it.contains("install") }
+            
+            if (isBuilding) {
+                vCode = versionProps['versionCode'].toInteger() + 1
                 def patch = versionProps['patch'].toInteger() + 1
-                vCode = vCode + 1
-                versionProps['patch'] = patch.toString()
+                
                 versionProps['versionCode'] = vCode.toString()
-                versionProps.store(versionPropsFile.newWriter(), null)
+                versionProps['patch'] = patch.toString()
+                
+                versionPropsFile.withWriter { versionProps.store(it, null) }
+            } else {
+                vCode = versionProps['versionCode'].toInteger()
             }
+            
+            vName = "${versionProps['major']}.${versionProps['minor']}.${versionProps['patch']}"
         }
 
         versionCode vCode
