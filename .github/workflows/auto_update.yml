@@ -57,19 +57,27 @@ jobs:
           
           VNAME="$MAJOR.$MINOR.$PATCH"
           
-          mkdir -p update
-          find . -name "*.apk" -not -path "*/update/*" -exec cp {} update/app-release.apk \;
+          mkdir -p release_files
+          find . -name "*.apk" -exec cp {} release_files/app-release.apk \;
           
           echo "{
             \"versionCode\": $VCODE,
             \"versionName\": \"$VNAME\",
-            \"downloadUrl\": \"https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/master/update/app-release.apk\"
-          }" > update/version.json
+            \"downloadUrl\": \"https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/releases/app-release.apk\"
+          }" > release_files/version.json
 
-      - name: Push updates
+      - name: Push to Releases Branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add update/ version.properties
-          git commit -m "Auto-update APK and version.json [skip ci]" || echo "No changes"
-          git push origin master
+          git fetch origin
+          
+          # Create and switch to a temporary orphan branch
+          git checkout --orphan releases_temp
+          git rm -rf .
+          cp -r release_files/* .
+          git add .
+          git commit -m "Build $VNAME (Code $VCODE)"
+          
+          # Push the content of the temporary branch to the remote 'releases' branch
+          git push origin releases_temp:releases --force

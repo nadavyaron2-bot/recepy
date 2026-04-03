@@ -147,20 +147,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         withContext(Dispatchers.IO) {
             val result = runCatching {
                 Log.d("MainViewModel", "Sending $action for $type via GET...")
-                org.jsoup.Jsoup.connect(SCRIPT_URL)
-                    .ignoreContentType(true)
-                    .data("action", action)
-                    .data("type", type)
-                    .data("description", description)
-                    .data("date", System.currentTimeMillis().toString())
-                    .method(org.jsoup.Connection.Method.GET) // שינוי ל-GET
-                    .followRedirects(true)
-                    .timeout(15000)
-                    .execute()
+                val url = "$SCRIPT_URL?action=$action&type=$type&description=${java.net.URLEncoder.encode(description, "UTF-8")}&date=${System.currentTimeMillis()}"
+                java.net.URL(url).readText()
             }
-            
+
             result.onSuccess { response ->
-                Log.d("MainViewModel", "Remote sync success! Response: ${response.body()}")
+                Log.d("MainViewModel", "Remote sync success! Response: $response")
             }.onFailure { e ->
                 Log.e("MainViewModel", "Remote sync failed: ${e.message}", e)
             }
@@ -556,7 +548,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         importBundledRecipesOnAppUpdate()
-        syncWithRemoteSystemRecipes()
         cleanupOldUpdates()
         checkForAppUpdate(application)
     }
@@ -877,7 +868,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun checkForAppUpdate(context: Context) {
         viewModelScope.launch {
             _appUpdateMessage.value = getString(R.string.checking)
-            val versionUrl = "https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/master/update/version.json"
+            val versionUrl = "https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/releases/version.json"
             
             runCatching {
                 withContext(Dispatchers.IO) {

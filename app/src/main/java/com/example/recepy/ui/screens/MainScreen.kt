@@ -113,7 +113,7 @@ fun MainScreen(
     val isLoading = recipeUiState is RecipeUiState.Loading
 
     LaunchedEffect(Unit) {
-        viewModel.loadSeedRecipes()
+        // Removed automatic recipe update
     }
 
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }

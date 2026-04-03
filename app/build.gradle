@@ -13,34 +13,8 @@ android {
         minSdk 26
         targetSdk libs.versions.targetSdk.get().toInteger()
         
-        def versionPropsFile = file("${project.rootDir}/version.properties")
-        def vCode = 1
-        def vName = "1.0.0"
-
-        if (versionPropsFile.canRead()) {
-            def versionProps = new Properties()
-            versionPropsFile.withInputStream { versionProps.load(it) }
-            
-            def runTasks = gradle.startParameter.taskNames
-            def isBuilding = runTasks.any { it.contains("assemble") || it.contains("bundle") || it.contains("install") }
-            
-            if (isBuilding) {
-                vCode = versionProps['versionCode'].toInteger() + 1
-                def patch = versionProps['patch'].toInteger() + 1
-                
-                versionProps['versionCode'] = vCode.toString()
-                versionProps['patch'] = patch.toString()
-                
-                versionPropsFile.withWriter { versionProps.store(it, null) }
-            } else {
-                vCode = versionProps['versionCode'].toInteger()
-            }
-            
-            vName = "${versionProps['major']}.${versionProps['minor']}.${versionProps['patch']}"
-        }
-
-        versionCode vCode
-        versionName vName
+        versionCode 34
+        versionName "1.0.33"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

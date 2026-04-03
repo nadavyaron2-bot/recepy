@@ -39,25 +39,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import com.example.recepy.viewmodel.MainViewModel
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.recepy.R
 import com.example.recepy.data.preferences.AppTheme
@@ -67,6 +56,7 @@ import com.example.recepy.ui.theme.GreenPrimary
 import com.example.recepy.ui.theme.OrangePrimary
 import com.example.recepy.ui.theme.PinkPrimary
 import com.example.recepy.ui.theme.PurplePrimary
+import com.example.recepy.viewmodel.MainViewModel
 
 // מחלץ domain נקי מ-URL (ללא www. וללא path)
 fun extractDomain(url: String): String {
@@ -75,6 +65,13 @@ fun extractDomain(url: String): String {
     } catch (_: Exception) {
         url
     }
+}
+
+@Composable
+fun ThemeMode.toLabel(): String = when (this) {
+    ThemeMode.LIGHT -> stringResource(R.string.theme_light)
+    ThemeMode.DARK -> stringResource(R.string.theme_dark)
+    ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,161 +98,50 @@ fun SettingsScreen(
     isDeveloper: Boolean = false,
     onDeveloperModeToggle: (Boolean) -> Unit = {},
     onReportBug: (String) -> Unit = {},
-    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    snackbarHostState: SnackbarHostState,
     viewModel: MainViewModel
 ) {
     val showDeleteDialog = remember { mutableStateOf(false) }
-    val selectedDomains = remember { mutableStateOf<Set<String>>(emptySet()) }
-    
-    // Developer Mode Logic
-    val devClickCount = remember { mutableIntStateOf(0) }
-    val lastClickTime = remember { mutableLongStateOf(0L) }
-    val showDevLoginDialog = remember { mutableStateOf(false) }
-    val devUsername = remember { mutableStateOf("") }
-    val devPassword = remember { mutableStateOf("") }
-    val loginError = remember { mutableStateOf(false) }
+    val selectedDomains = remember { mutableStateOf(setOf<String>()) }
 
-    val allDomains = domainCounts.keys.sorted()
-
-    // ── Developer Login Dialog ─────────────────────────────────────────────
-    if (showDevLoginDialog.value) {
-        AlertDialog(
-            onDismissRequest = { showDevLoginDialog.value = false },
-            title = { Text(stringResource(R.string.dev_login_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.dev_login_message))
-                    OutlinedTextField(
-                        value = devUsername.value,
-                        onValueChange = { devUsername.value = it; loginError.value = false },
-                        label = { Text(stringResource(R.string.username_label)) },
-                        isError = loginError.value
-                    )
-                    OutlinedTextField(
-                        value = devPassword.value,
-                        onValueChange = { devPassword.value = it; loginError.value = false },
-                        label = { Text(stringResource(R.string.password_label)) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        isError = loginError.value
-                    )
-                    if (loginError.value) {
-                        Text(
-                            stringResource(R.string.login_error),
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (devUsername.value == "admin" && devPassword.value == "recepy2024") {
-                        onDeveloperModeToggle(true)
-                        showDevLoginDialog.value = false
-                    } else {
-                        loginError.value = true
-                    }
-                }) {
-                    Text(stringResource(R.string.login_button))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDevLoginDialog.value = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
-    // ── Delete dialog ─────────────────────────────────────────────────────────
     if (showDeleteDialog.value) {
-        val allSelected = selectedDomains.value.size == allDomains.size
-
         AlertDialog(
-            onDismissRequest = {
-                showDeleteDialog.value = false
-            },
+            onDismissRequest = { showDeleteDialog.value = false },
             title = { Text(stringResource(R.string.delete_by_source_title)) },
             text = {
                 Column(
                     modifier = Modifier
-                        .heightIn(max = 380.dp)
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = stringResource(R.string.delete_by_source_message),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    // "בחר הכל"
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = stringResource(R.string.select_all),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            val total = domainCounts.values.sum()
-                            Text(
-                                text = stringResource(R.string.recipes_count, total),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Checkbox(
-                            checked = allSelected,
-                            onCheckedChange = { checked ->
-                                selectedDomains.value = if (checked) allDomains.toSet() else emptySet()
-                            }
-                        )
-                    }
-
-                    HorizontalDivider()
-
-                    // שורה לכל domain — פעם אחת בלבד
-                    allDomains.forEach { domain ->
-                        val count   = domainCounts[domain] ?: 0
-                        val checked = domain in selectedDomains.value
-
+                    domainCounts.keys.sorted().forEach { domain ->
                         Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .clickable {
+                                    val current = selectedDomains.value.toMutableSet()
+                                    if (current.contains(domain)) current.remove(domain)
+                                    else current.add(domain)
+                                    selectedDomains.value = current
+                                }
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = domain,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = stringResource(R.string.recipes_count, count),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                             Checkbox(
-                                checked = checked,
-                                onCheckedChange = { isChecked ->
-                                    selectedDomains.value = if (isChecked)
-                                        selectedDomains.value + domain
-                                    else
-                                        selectedDomains.value - domain
+                                checked = selectedDomains.value.contains(domain),
+                                onCheckedChange = { checked ->
+                                    val current = selectedDomains.value.toMutableSet()
+                                    if (checked) current.add(domain)
+                                    else current.remove(domain)
+                                    selectedDomains.value = current
                                 }
                             )
+                            Text(
+                                text = "$domain (${domainCounts[domain]})",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
-
-                        HorizontalDivider()
                     }
                 }
             },
@@ -284,7 +170,6 @@ fun SettingsScreen(
         )
     }
 
-    // ── Screen ────────────────────────────────────────────────────────────────
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -308,6 +193,47 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(stringResource(R.string.appearance_title))
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── Updates ──────────────────────────────────────────────────────
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.update_app_title),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = stringResource(R.string.update_app_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                if (appUpdateMessage != null) {
+                    Text(
+                        text = appUpdateMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+
+                if (downloadProgress != null) {
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { downloadProgress },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { onCheckAppUpdate() },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text(stringResource(R.string.check_for_updates))
+                }
+            }
+
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
 
             Text(
@@ -412,227 +338,73 @@ fun SettingsScreen(
             Text(stringResource(R.string.data_title))
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
 
+            OutlinedButton(
+                onClick = { onExportAll() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.export_recipes_title))
+            }
+
+            val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+                contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+            ) { uri ->
+                if (uri != null) onImportFromFile(uri)
+            }
+
+            OutlinedButton(
+                onClick = { launcher.launch(arrayOf("application/json")) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.import_recipes_title))
+            }
+
+            OutlinedButton(
+                onClick = { showDeleteDialog.value = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text(stringResource(R.string.delete_by_source_title))
+            }
+
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+            // ── Developer Options ─────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.delete_all_title),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = stringResource(R.string.delete_all_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                OutlinedButton(
-                    onClick = { showDeleteDialog.value = true },
-                    enabled = domainCounts.isNotEmpty(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text(stringResource(R.string.delete_all_button))
-                }
-            }
-
-            HorizontalDivider(modifier = Modifier.fillMaxWidth())
-
-            // ── Updates ──────────────────────────────────────────────────────────
-
-            // ── Updates ───────────────────────────────────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.update_system_recipes_title),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = stringResource(R.string.update_system_recipes_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                OutlinedButton(
-                    onClick = onCheckForUpdates,
-                    enabled = !isImporting
-                ) {
-                    Text(stringResource(R.string.check_for_updates))
-                }
-            }
-
-            // הודעת סטטוס קטנה מתחת לכפתור
-            systemUpdateMessage?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            HorizontalDivider(modifier = Modifier.fillMaxWidth())
-
-            // ── App Update ────────────────────────────────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.update_app_title),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = stringResource(R.string.update_app_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                OutlinedButton(
-                    onClick = onCheckAppUpdate
-                ) {
-                    Text(stringResource(R.string.check_for_updates))
-                }
-            }
-
-            // הודעת סטטוס קטנה מתחת לכפתור
-            appUpdateMessage?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(top = 4.dp)
+                Text(stringResource(R.string.dev_mode_active))
+                Switch(
+                    checked = isDeveloper,
+                    onCheckedChange = { onDeveloperModeToggle(it) }
                 )
             }
 
-            downloadProgress?.let { progress ->
-                androidx.compose.material3.LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                )
-            }
-            HorizontalDivider(modifier = Modifier.fillMaxWidth())
-
-            // ── Bug Report / Suggestion ──────────────────────────────────────────
-            val reportContent = remember { mutableStateOf("") }
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.report_bug_suggestion_title),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = stringResource(R.string.report_bug_suggestion_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                OutlinedTextField(
-                    value = reportContent.value,
-                    onValueChange = { reportContent.value = it },
-                    label = { Text(stringResource(R.string.bug_report_hint)) },
+            if (isDeveloper) {
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 3
-                )
-                OutlinedButton(
-                    onClick = {
-                        if (reportContent.value.isNotBlank()) {
-                            onReportBug(reportContent.value)
-                            reportContent.value = ""
-                        }
-                    },
-                    modifier = Modifier.align(Alignment.End),
-                    enabled = reportContent.value.isNotBlank()
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(stringResource(R.string.send_report_button))
-                }
-            }
-            HorizontalDivider(modifier = Modifier.fillMaxWidth())
-
-            // ── App Info ──────────────────────────────────────────────────────
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                val totalRecipes = domainCounts.values.sum()
-                Text(
-                    text = stringResource(R.string.total_recipes_count, totalRecipes),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                val context = LocalContext.current
-                val packageInfo = remember {
-                    runCatching {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                            context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
-                        } else {
-                            @Suppress("DEPRECATION")
-                            context.packageManager.getPackageInfo(context.packageName, 0)
-                        }
-                    }.getOrNull()
-                }
-                val versionName = packageInfo?.versionName ?: "1.0.0"
-                
-                Text(
-                    text = stringResource(R.string.version_label, versionName),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.clickable(
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        val currentTime = System.currentTimeMillis()
-                        if (currentTime - lastClickTime.longValue > 2000) {
-                            devClickCount.intValue = 1
-                        } else {
-                            devClickCount.intValue++
-                        }
-                        lastClickTime.longValue = currentTime
-                        
-                        if (devClickCount.intValue >= 8 && !isDeveloper) {
-                            showDevLoginDialog.value = true
-                            devClickCount.intValue = 0
-                        }
-                    }
-                )
-
-                if (isDeveloper) {
-                    Text(
-                        text = stringResource(R.string.dev_mode_active),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp)
+                    val bugText = remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = bugText.value,
+                        onValueChange = { bugText.value = it },
+                        label = { Text(stringResource(R.string.report_bug_suggestion_title)) },
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    TextButton(onClick = { onDeveloperModeToggle(false) }) {
-                        Text(stringResource(R.string.disable_dev_mode), style = MaterialTheme.typography.labelSmall)
+                    OutlinedButton(
+                        onClick = { 
+                            onReportBug(bugText.value)
+                            bugText.value = ""
+                        },
+                        modifier = Modifier.align(Alignment.End),
+                        enabled = bugText.value.isNotBlank()
+                    ) {
+                        Text(stringResource(R.string.send_report_button))
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ThemeMode.toLabel(): String {
-    return when (this) {
-        ThemeMode.LIGHT  -> stringResource(R.string.theme_light)
-        ThemeMode.DARK   -> stringResource(R.string.theme_dark)
-        ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
     }
 }

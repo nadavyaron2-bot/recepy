@@ -144,13 +144,16 @@ class MainActivity : ComponentActivity() {
 
                     // בודקים מה להציג - את מסך הפתיחה או את האפליקציה המלאה
                     if (showSplash) {
-                        SplashScreen(onNavigateToMain = { showSplash = false })
+                        SplashScreen(onNavigateToMain = { 
+                            showSplash = false 
+                            mainViewModel.checkForAppUpdate(this@MainActivity)
+                        })
                     } else {
         if (showUpdateDialog && updateDownloadUrl != null) {
             UpdateDialog(
                 onDismiss = { mainViewModel.dismissUpdateDialog() },
                 onConfirm = {
-                    mainViewModel.installUpdate(this, updateDownloadUrl!!)
+                    mainViewModel.installUpdate(this@MainActivity, updateDownloadUrl!!)
                     mainViewModel.dismissUpdateDialog()
                 }
             )
@@ -387,7 +390,7 @@ fun RecepyApp(
                         isImporting = isImporting,
                         systemUpdateMessage = systemUpdateMessage,
                         appUpdateMessage = appUpdateMessage,
-                        onCheckForUpdates = { mainViewModel.loadSeedRecipes() },
+                        onCheckForUpdates = { },
                         onCheckAppUpdate = { mainViewModel.checkForAppUpdate(context) },
                         downloadProgress = downloadProgress,
                         isDeveloper = isDeveloper,
