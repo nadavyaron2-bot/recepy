@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="add_button">הוסף</string>
+    <string name="add_image">הוסף תמונה</string>
+    <string name="add_image_optional">הוסף תמונה למתכון (אופציונלי)</string>
+    <string name="add_missing_to_cart">הוסף חסרים לעגלה</string>
+    <string name="add_recipe">הוספת מתכון</string>
+    <string name="add_recipe_to_group">הוסף מתכון לקבוצה</string>
+    <string name="add_recipe_to_group_dialog">הוספת מתכון לקבוצה</string>
+    <string name="add_to_my_library">הוסף לספרייה שלי</string>
+    <string name="admin_label">מנהל</string>
+    <string name="advanced_tools_footer">כלים מתקדמים (DB Inspector, Logs) יתווספו בגרסאות הבאות.</string>
+    <string name="all_ingredients_checked">כל המצרכים סומנו</string>
+    <string name="all_recipes">כל המתכונים</string>
+    <string msgid="8719607706653693137" name="androidx_compose_foundation_autofill">"מילוי אוטומטי"</string>
+    <string msgid="1150566100598813236" name="androidx_compose_ui_autofill">"מילוי אוטומטי"</string>
+    <string name="app_name">מתכוניה</string>
+    <string name="app_up_to_date">האפליקציה מעודכנת</string>
+    <string name="appearance_title">מראה</string>
+    <string name="auto_search_extract">חפש וחלץ מתכון באופן אוטומטי</string>
+    <string name="back">חזרה</string>
+    <string name="back_desc">חזרה</string>
+    <string name="bought_suffix">(נקנה)</string>
+    <string name="bug_report_hint">תיאור הבאג או ההצעה</string>
+    <string name="bug_report_sent">הדיווח נשלח, תודה!</string>
+    <string name="bugs_in_progress_title">באגים בטיפול</string>
+    <string msgid="881409763997275156" name="call_notification_answer_action">"מענה"</string>
+    <string msgid="8793775615905189152" name="call_notification_answer_video_action">"וידאו"</string>
+    <string msgid="3229508546291798546" name="call_notification_decline_action">"דחייה"</string>
+    <string msgid="2659457946726154263" name="call_notification_hang_up_action">"ניתוק"</string>
+    <string msgid="6107532579223922871" name="call_notification_incoming_text">"שיחה נכנסת"</string>
+    <string msgid="8623827134497363134" name="call_notification_ongoing_text">"שיחה פעילה"</string>
+    <string msgid="59049573811482460" name="call_notification_screening_text">"סינון שיחה נכנסת"</string>
+    <string name="cancel">בטל</string>
+    <string name="cancel_timer_desc">בטל טיימר</string>
+    <string name="change_image_desc">שנה תמונה</string>
+    <string name="check_for_updates">בדוק עדכונים</string>
+    <string name="checking">בודק…</string>
+    <string name="clear_all">נקה הכל</string>
+    <string msgid="406453423630273620" name="close_drawer">"סגירת תפריט הניווט"</string>
+    <string msgid="7573152094250666567" name="close_sheet">"סגירת הגיליון"</string>
+    <string name="cooking_mode">מצב בישול</string>
+    <string name="cooking_mode_active">מצב בישול פעיל</string>
+    <string name="cooking_mode_desc">מצב בישול</string>
+    <string name="create_button">צור</string>
+    <string name="create_group">צור קבוצה</string>
+    <string name="create_group_dialog_title">יצירת קבוצה חדשה</string>
+    <string name="create_new_recipe_or_paste">יצירת מתכון חדש / הדבקה מטקסט</string>
+    <string name="data_title">נתונים</string>
+    <string msgid="8038256446254964252" name="default_error_message">"הקלט לא תקין"</string>
+    <string msgid="6312721426453364202" name="default_popup_window_title">"חלון קופץ"</string>
+    <string name="default_timer_title">טיימר מתכון</string>
+    <string name="delete">מחק</string>
+    <string name="delete_all_button">מחק</string>
+    <string name="delete_all_message">האם אתה בטוח שברצונך למחוק את כל המתכונים? לא ניתן לשחזר אותם.</string>
+    <string name="delete_all_subtitle">בחר מתכונים למחיקה לפי מקור</string>
+    <string name="delete_all_title">מחיקת כל המתכונים</string>
+    <string name="delete_by_source_message">סמן את המקורות שמתכוניהם יימחקו. פעולה זו אינה הפיכה.</string>
+    <string name="delete_by_source_title">בחר מקורות למחיקה</string>
+    <string name="delete_checked">מחק מסומנים</string>
+    <string name="delete_confirm">מחק</string>
+    <string name="delete_desc">מחיקה</string>
+    <string name="delete_group">מחק קבוצה</string>
+    <string name="delete_group_confirm_message">האם אתה בטוח שברצונך למחוק את הקבוצה לצמיתות?</string>
+    <string name="delete_group_confirm_title">מחיקת קבוצה</string>
+    <string name="delete_item">מחק</string>
+    <string name="delete_permanently">מחק לצמיתות</string>
+    <string name="delete_recipe_confirmation">האם למחוק את המתכון?</string>
+    <string name="delete_recipe_message">האם למחוק את המתכון מהרשימה השמורה?</string>
+    <string name="delete_recipe_title">למחוק מתכון?</string>
+    <string name="delete_shared_recipe_message">האם למחוק את המתכון מהקבוצה?</string>
+    <string name="delete_shared_recipe_title">מחיקת מתכון משותף</string>
+    <string name="detail_not_found">לא נמצא מתכון להצגה</string>
+    <string name="dev_login_message">הכנס פרטי גישה למצב מפתחים:</string>
+    <string name="dev_login_title">כניסת מפתחים</string>
+    <string name="dev_mode_active">מצב מפתחים פעיל</string>
+    <string name="developer_tools_title">ארגז כלים למפתחים</string>
+    <string name="disable_dev_mode">ביטול מצב מפתחים</string>
+    <string name="display_mode_title">מצב תצוגה</string>
+    <string name="done_label">בוצע!</string>
+    <string name="download_complete">הורדה הושלמה</string>
+    <string name="download_error">שגיאה בהורדת העדכון</string>
+    <string name="downloading_update">מוריד עדכון…</string>
+    <string msgid="1890207353314751437" name="dropdown_menu">"תפריט נפתח"</string>
+    <string name="edit_recipe_desc">ערוך מתכון</string>
+    <string name="enter_search_or_link">אנא הזן חיפוש או קישור</string>
+    <string name="export_button">ייצא</string>
+    <string name="export_chooser_title">שתף את כל המתכונים</string>
+    <string name="export_import_title">שיתוף וגיבוי ספריה</string>
+    <string name="export_recipes_subtitle">ייצא את כל הספרייה לקובץ JSON</string>
+    <string name="export_recipes_title">שתף את כל המתכונים</string>
+    <string name="export_success">הספרייה יוצאה בהצלחה</string>
+    <string name="extract_recipe">חלץ מתכון</string>
+    <string name="extract_recipe_from_text">חלץ מתכון מטקסט</string>
+    <string name="fallback_title">מתכון ללא כותרת</string>
+    <string name="favorite">מועדף</string>
+    <string name="finish_cooking_button">סיום בישול</string>
+    <string name="finished_cooking_success">סיימתי לבשל!</string>
+    <string name="free_text_tab">טקסט חופשי</string>
+    <string name="from_list">מהרשימה שלי</string>
+    <string name="general_items">מצרכים כלליים</string>
+    <string msgid="2863935784364843033" name="glance_error_layout_text">"‏יש לבדוק את השגיאה המדויקת באמצעות "<b><tt>"adb Logcat‏"</tt></b>", ולחפש את "<b><tt>"GlanceAppWidget"</tt></b></string>
+    <string msgid="5191168365305634625" name="glance_error_layout_text_v2">"לא ניתן להציג את התוכן"</string>
+    <string msgid="3631961919234443531" name="glance_error_layout_title"><b>"שגיאה בווידג\'ט של האפליקציה \'בקצרה\'"</b></string>
+    <string name="group_code_label">קוד: %1$s</string>
+    <string name="group_name_label">שם הקבוצה</string>
+    <string name="group_password_hint">סיסמת קבוצה</string>
+    <string name="group_permissions_settings">הגדרות הרשאות קבוצה</string>
+    <string name="groups_title">קבוצות</string>
+    <string name="import_button">ייבא</string>
+    <string name="import_recipes_subtitle">הוסף מתכונים חדשים מקובץ JSON</string>
+    <string name="import_recipes_title">ייבא מתכונים מקובץ</string>
+    <string name="import_share_label">מתכוניה - הוספת מתכונים</string>
+    <string name="import_success">יובאו %1$d מתכונים בהצלחה</string>
+    <string msgid="6827826412747255547" name="in_progress">"בתהליך"</string>
+    <string msgid="7933458017204019916" name="indeterminate">"מסומנת חלקית"</string>
+    <string name="ingredients_added_to_cart">המצרכים נוספו לעגלה</string>
+    <string name="ingredients_edit_label">עריכת מצרכים</string>
+    <string name="ingredients_title">מצרכים</string>
+    <string name="instructions_edit_label">עריכת הוראות הכנה</string>
+    <string name="instructions_title">הוראות הכנה</string>
+    <string name="invalid_url">יש להזין קישור תקין</string>
+    <string name="join_button">הצטרף</string>
+    <string name="join_existing_group">הצטרפות לקבוצה קיימת</string>
+    <string name="join_group">הצטרף לקבוצה</string>
+    <string name="join_group_dialog_title">הצטרפות לקבוצה</string>
+    <string name="keep_screen_on_subtitle">המסך לא יכבה בזמן שימוש באפליקציה</string>
+    <string name="keep_screen_on_title">השאר מסך דלוק</string>
+    <string name="leave_button">עזוב</string>
+    <string name="leave_group">עזוב קבוצה</string>
+    <string name="leave_group_confirm_message">האם אתה בטוח שברצונך לעזוב את הקבוצה?</string>
+    <string name="leave_group_confirm_title">עזיבת קבוצה</string>
+    <string name="link_tab">קישור</string>
+    <string name="loading_recipe">מחלץ מתכון…</string>
+    <string name="login_button">התחבר</string>
+    <string name="login_error">שם משתמש או סיסמה שגויים</string>
+    <string msgid="2988463736136100848" name="m3c_bottom_sheet_collapse_description">"כיווץ הגיליון התחתון"</string>
+    <string msgid="1555567894577437024" name="m3c_bottom_sheet_dismiss_description">"סגירת הגיליון התחתון"</string>
+    <string msgid="8403354765404029791" name="m3c_bottom_sheet_drag_handle_description">"נקודת אחיזה לגרירה"</string>
+    <string msgid="6670819569745899763" name="m3c_bottom_sheet_expand_description">"הרחבת הגיליון התחתון"</string>
+    <string msgid="3010635850035863127" name="m3c_bottom_sheet_pane_title">"גיליון תחתון"</string>
+    <string msgid="8166741421776570875" name="m3c_date_input_headline">"התאריך שהוזן"</string>
+    <string msgid="229313757840775812" name="m3c_date_input_headline_description">"‏התאריך שהוזן: %1$s"</string>
+    <string msgid="6116910750161463197" name="m3c_date_input_invalid_for_pattern">"‏התאריך לא תואם למבנה הצפוי: %1$s"</string>
+    <string msgid="2521768508935305279" name="m3c_date_input_invalid_not_allowed">"‏תאריך לא מורשה: %1$s"</string>
+    <string msgid="7052898923934555305" name="m3c_date_input_invalid_year_range">"‏התאריך נמצא מחוץ לטווח השנים הצפוי %1$s - %2$s"</string>
+    <string msgid="2895559812010326913" name="m3c_date_input_label">"תאריך"</string>
+    <string msgid="1237013946323089826" name="m3c_date_input_no_input_description">"ללא"</string>
+    <string msgid="7306227249789210568" name="m3c_date_input_title">"בחירת תאריך"</string>
+    <string msgid="7605002211875882969" name="m3c_date_picker_headline">"התאריך הנבחר"</string>
+    <string msgid="3664277305226978227" name="m3c_date_picker_headline_description">"‏הבחירה הנוכחית: %1$s"</string>
+    <string msgid="8436650776581492840" name="m3c_date_picker_navigate_to_year_description">"‏ניווט לשנת %1$s"</string>
+    <string msgid="5811000998184572395" name="m3c_date_picker_no_selection_description">"ללא"</string>
+    <string msgid="7813882352367152251" name="m3c_date_picker_scroll_to_earlier_years">"צריך לגלול כדי להציג את השנים הקודמות"</string>
+    <string msgid="5727367015496556177" name="m3c_date_picker_scroll_to_later_years">"צריך לגלול כדי להציג את השנים המאוחרות"</string>
+    <string msgid="1804346892470238807" name="m3c_date_picker_switch_to_calendar_mode">"מעבר לשיטת קלט של יומן"</string>
+    <string msgid="395627960681594326" name="m3c_date_picker_switch_to_day_selection">"יש להחליק כדי לבחור שנה, או ללחוץ כדי לחזור לבחירת היום"</string>
+    <string msgid="2219746470065162704" name="m3c_date_picker_switch_to_input_mode">"מעבר לשיטת קלט של טקסט"</string>
+    <string msgid="7142101321095356500" name="m3c_date_picker_switch_to_next_month">"מעבר לחודש הבא"</string>
+    <string msgid="228438865139394590" name="m3c_date_picker_switch_to_previous_month">"מעבר לחודש הקודם"</string>
+    <string msgid="791651718641787594" name="m3c_date_picker_switch_to_year_selection">"החלפה לבחירה של שנה"</string>
+    <string msgid="7430790972741451689" name="m3c_date_picker_title">"בחירת תאריך"</string>
+    <string msgid="3199387177749801575" name="m3c_date_picker_today_description">"היום"</string>
+    <string msgid="2068382232816991922" name="m3c_date_picker_year_picker_pane_title">"בורר השנה גלוי"</string>
+    <string msgid="3190049423327661366" name="m3c_date_range_input_invalid_range_input">"קלט טווח תאריכים לא חוקי"</string>
+    <string msgid="3148384720560189467" name="m3c_date_range_input_title">"הזנת תאריכים"</string>
+    <string msgid="2138321128465719402" name="m3c_date_range_picker_day_in_range">"בטווח"</string>
+    <string msgid="4947636797751277713" name="m3c_date_range_picker_end_headline">"תאריך סיום"</string>
+    <string msgid="602077859540990149" name="m3c_date_range_picker_scroll_to_next_month">"צריך לגלול כדי להציג את החודש הבא"</string>
+    <string msgid="4592174524846109496" name="m3c_date_range_picker_scroll_to_previous_month">"צריך לגלול כדי להציג את החודש הקודם"</string>
+    <string msgid="4665981448952749820" name="m3c_date_range_picker_start_headline">"תאריך התחלה"</string>
+    <string msgid="3134165431120340385" name="m3c_date_range_picker_title">"בחירת תאריכים"</string>
+    <string msgid="7617233117134790350" name="m3c_dialog">"תיבת דו-שיח"</string>
+    <string msgid="3177828188723359358" name="m3c_dropdown_menu_collapsed">"התפריט הנפתח מכווץ"</string>
+    <string msgid="2360841780724299882" name="m3c_dropdown_menu_expanded">"התפריט הנפתח מורחב"</string>
+    <string msgid="8687821690726149911" name="m3c_dropdown_menu_toggle">"החלפת המצב של התפריט הנפתח"</string>
+    <string msgid="6072492480528318635" name="m3c_floating_toolbar_collapse">"כיווץ סרגל הכלים"</string>
+    <string msgid="6880757017246780255" name="m3c_floating_toolbar_expand">"הרחבת סרגל הכלים"</string>
+    <string msgid="6152806324422087846" name="m3c_search_bar_search">"חיפוש"</string>
+    <string msgid="6152755701819882931" name="m3c_snackbar_dismiss">"סגירה"</string>
+    <string msgid="3868801555855510515" name="m3c_snackbar_pane_title">"התראה"</string>
+    <string msgid="7655536806087401899" name="m3c_suggestions_available">"הצעות מופיעות למטה"</string>
+    <string msgid="409352516511718051" name="m3c_time_input_dialog_title">"הזנת שעה"</string>
+    <string msgid="2786685010796619560" name="m3c_time_picker_am">"AM"</string>
+    <string msgid="7412665527536641863" name="m3c_time_picker_dialog_title">"בחירת שעה"</string>
+    <string msgid="2349193472625211372" name="m3c_time_picker_hour">"שעות"</string>
+    <string msgid="9179527532316922345" name="m3c_time_picker_hour_24h_suffix">"‏%1$d שעות"</string>
+    <string msgid="8876759303332837035" name="m3c_time_picker_hour_selection">"בחירת שעה"</string>
+    <string msgid="3458167507790628988" name="m3c_time_picker_hour_suffix">"%1$d"</string>
+    <string msgid="6973808109666874069" name="m3c_time_picker_hour_text_field">"שעות"</string>
+    <string msgid="4313071914266462005" name="m3c_time_picker_minute">"דקות"</string>
+    <string msgid="4699133535056739733" name="m3c_time_picker_minute_selection">"בחירת דקות"</string>
+    <string msgid="5064177921781937179" name="m3c_time_picker_minute_suffix">"‏%1$d דקות"</string>
+    <string msgid="7661234488295443182" name="m3c_time_picker_minute_text_field">"דקות"</string>
+    <string msgid="5865171949528594571" name="m3c_time_picker_period_toggle_description">"‏צריך לבחור ב-AM או ב-PM"</string>
+    <string msgid="6616362054113087709" name="m3c_time_picker_pm">"PM"</string>
+    <string msgid="4145073906612931838" name="m3c_time_picker_toggle_keyboard">"מעבר אל שיטת קלט טקסט כדי להזין את השעה"</string>
+    <string msgid="8841786098195101324" name="m3c_time_picker_toggle_touch">"מעבר אל מצב שעון כדי להזין את השעה"</string>
+    <string msgid="1805687647081129904" name="m3c_tooltip_long_press_label">"הצגת הסבר קצר"</string>
+    <string msgid="5460405025248574620" name="m3c_tooltip_pane_description">"הסבר קצר"</string>
+    <string msgid="6564222473543418073" name="m3c_wide_navigation_rail_close_rail">"סגירה של פס הניווט"</string>
+    <string msgid="8350283435461615411" name="m3c_wide_navigation_rail_pane_title">"פס ניווט"</string>
+    <string name="manual_entry">הזנה ידנית</string>
+    <string name="manual_entry_source">הזנה ידנית</string>
+    <string name="mark_as_done">סמן כבוצע</string>
+    <string name="nav_developer">מפתחים</string>
+    <string name="nav_groups">קבוצות</string>
+    <string name="nav_home">בית</string>
+    <string name="nav_settings">הגדרות</string>
+    <string msgid="542007171693138492" name="navigation_menu">"תפריט הניווט"</string>
+    <string name="new_recipes_added_count">נוספו %1$d מתכונים חדשים</string>
+    <string name="no_groups_joined">עדיין לא הצטרפת לאף קבוצה</string>
+    <string name="no_groups_yet">עדיין אין קבוצות</string>
+    <string name="no_image">לא נמצאה תמונה</string>
+    <string name="no_ingredients">לא נמצאו מצרכים</string>
+    <string name="no_new_bugs">אין דיווחי באגים חדשים</string>
+    <string name="no_new_recipes_to_import">לא נמצאו מתכונים חדשים לייבוא</string>
+    <string name="no_new_requests">אין בקשות חדשות</string>
+    <string name="no_recipe_found_for_search">לא נמצא מתכון מתאים לחיפוש זה</string>
+    <string name="no_results_for">לא נמצאו תוצאות ל-\"%1$s\"</string>
+    <string name="no_saved_recipes">עדיין אין מתכונים שמורים</string>
+    <string name="no_search_results">לא נמצאו תוצאות</string>
+    <string name="no_shared_recipes">אין מתכונים משותפים בקבוצה זו</string>
+    <string name="no_steps">לא נמצאו שלבי הכנה</string>
+    <string msgid="6610465462668679431" name="not_selected">"לא נבחר"</string>
+    <string name="notes_hint">הערות למתכון…</string>
+    <string name="notes_saved">ההערות נשמרו</string>
+    <string name="open_recipe">פתח מתכון</string>
+    <string name="open_url_desc">פתח קישור</string>
+    <string name="overlay_permission_request">נדרשת הרשאת תצוגה מעל אפליקציות עבור הטיימר</string>
+    <string name="parse_error">לא הצלחנו לחלץ מתכון מהקישור הזה</string>
+    <string name="password_label">סיסמה</string>
+    <string name="paste_recipe_link">הדבק קישור למתכון</string>
+    <string name="paste_recipe_placeholder">הדבק כאן טקסט מתכון…</string>
+    <string name="paste_recipe_text">הדבק מתכון טקסט</string>
+    <string name="paste_recipe_text_hint">הדבק כאן את טקסט המתכון</string>
+    <string name="perm_full_access">גישה מלאה</string>
+    <string name="perm_view_add">צפייה והוספה</string>
+    <string name="perm_view_only">צפייה בלבד</string>
+    <string name="planned_recipes_title">מתכונים מתוכננים</string>
+    <string name="play_pause_desc">הפעל/השהה</string>
+    <string name="preparing_image">מכין תמונה…</string>
+    <string msgid="5941395253238309765" name="range_end">"סוף הטווח"</string>
+    <string msgid="7097486360902471446" name="range_start">"תחילת הטווח"</string>
+    <string name="rating_notes_title">דירוג והערות</string>
+    <string name="rating_saved">הדירוג נשמר</string>
+    <string name="recently_cooked">הכנתי לאחרונה 👨‍🍳</string>
+    <string name="recipe_deleted">המתכון נמחק</string>
+    <string name="recipe_extraction_error">שגיאה בחילוץ המתכון</string>
+    <string name="recipe_image_desc">תמונת מתכון</string>
+    <string name="recipe_saved">המתכון נשמר בהצלחה</string>
+    <string name="recipe_text_label">טקסט המתכון</string>
+    <string name="recipe_title_label">כותרת המתכון</string>
+    <string name="recipes_count">%1$d מתכונים</string>
+    <string name="recipes_imported_count">יובאו %1$d מתכונים חדשים</string>
+    <string name="recipes_up_to_date">המתכונים כבר מעודכנים</string>
+    <string name="refresh">רענן</string>
+    <string name="remove_from_group">הסר מהקבוצה</string>
+    <string name="remove_image_desc">מחק תמונה</string>
+    <string name="report_bug_suggestion_subtitle">מצאתם בעיה או שיש לכם רעיון לשיפור? ספרו לנו!</string>
+    <string name="report_bug_suggestion_title">דיווח על באג / הצעה לשיפור</string>
+    <string name="reported_bugs_title">באגים שדווחו</string>
+    <string name="save_changes">שמור שינויים</string>
+    <string name="save_notes">שמור הערות</string>
+    <string name="save_recipe">שמור</string>
+    <string name="save_recipe_button">שמור מתכון</string>
+    <string name="saved_date">נשמר: %1$s</string>
+    <string name="saved_recipes">מתכונים שמורים</string>
+    <string name="saved_to_history">נשמר בהיסטוריה</string>
+    <string name="saving">שומר…</string>
+    <string name="scroll_to_top">גלול למעלה</string>
+    <string name="search_by_ingredients">חיפוש לפי מצרכים</string>
+    <string name="search_on_web_suggestion">אולי תרצה שנחפש עבורך ברשת?</string>
+    <string name="search_saved_recipes">חיפוש מתכונים שמורים</string>
+    <string name="select_all">בחר הכל</string>
+    <string msgid="6043586758067023" name="selected">"נבחר"</string>
+    <string name="selected_indicator">נבחר</string>
+    <string name="send_report_button">שלח דיווח/הצעה</string>
+    <string name="settings_content_desc">הגדרות</string>
+    <string name="settings_title">הגדרות</string>
+    <string name="share_as_image">שתף כתמונה</string>
+    <string name="share_as_text">שתף כטקסט</string>
+    <string name="share_list">שתף רשימה</string>
+    <string name="share_recipe">שתף</string>
+    <string name="share_recipe_chooser_title">שתף מתכון</string>
+    <string name="share_to_group">שתף לקבוצה</string>
+    <string name="shared_from_app_branding">שותף מהאפליקציה Recepy!</string>
+    <string name="shared_recipe">מתכון משותף</string>
+    <string name="shared_recipes_title">מתכונים משותפים</string>
+    <string name="shared_to_group_success">שותף לקבוצה %1$s!</string>
+    <string name="shopping_list">רשימת קניות</string>
+    <string name="shopping_list_empty">רשימת הקניות ריקה</string>
+    <string name="shopping_list_share_header">🛒 *רשימת קניות :*\n\n</string>
+    <string name="shopping_list_share_item">• %1$s</string>
+    <string name="shopping_list_share_recipe_section">📍 *%1$s*:\n</string>
+    <string name="shopping_list_with_icon">רשימת קניות 🛒</string>
+    <string name="shortcut_add_recipe">הוסף מתכון</string>
+    <string name="shortcut_add_recipe_long">הוספת מתכון חדש</string>
+    <string name="shortcut_shopping_list">רשימת קניות</string>
+    <string name="shortcut_shopping_list_long">צפייה ברשימת הקניות</string>
+    <string msgid="2792228137354697160" name="snackbar_pane_title">"התראה"</string>
+    <string name="source_domain">מקור: %1$s</string>
+    <string name="source_prefix">🔗 מקור: %1$s</string>
+    <string name="start_timer_minutes">הפעל טיימר (%1$d דק\')</string>
+    <string msgid="4139871816613051306" name="state_empty">"ריק"</string>
+    <string msgid="5834637030682409883" name="state_off">"מצב מושבת"</string>
+    <string msgid="1490883874751719580" name="state_on">"מצב פעיל"</string>
+    <string msgid="6277540029070332960" name="status_bar_notification_info_overflow">"999+"</string>
+    <string name="step_x_of_y">שלב %1$d מתוך %2$d</string>
+    <string name="stop_alarm">עצור צלצול</string>
+    <string name="suggested_recipes_title">מתכונים מבוקשים (חיפושים ללא תוצאות)</string>
+    <string msgid="2561197295334830845" name="switch_role">"מתג"</string>
+    <string msgid="1672349317127674378" name="tab">"כרטיסייה"</string>
+    <string name="tags_label">תגיות</string>
+    <string name="tags_optional">תגיות (אופציונלי):</string>
+    <string msgid="5946805113151406391" name="template_percent">"<ns1:g id="PERCENTAGE">%1$d</ns1:g> אחוזים."</string>
+    <string name="text_paste">הדבקת טקסט</string>
+    <string name="theme_color_title">צבע ערכת נושא</string>
+    <string name="theme_dark">כהה</string>
+    <string name="theme_light">בהיר</string>
+    <string name="theme_system">כמו המערכת</string>
+    <string name="time_left">זמן נותר</string>
+    <string name="time_up_message">המתכון %1$s מוכן!</string>
+    <string name="time_up_title">הזמן נגמר!</string>
+    <string name="timer_active_desc">טיימר פעיל</string>
+    <string name="timer_format">%1$02d:%2$02d</string>
+    <string msgid="3765533235322692011" name="tooltip_description">"הסבר קצר"</string>
+    <string msgid="3124740595719787496" name="tooltip_label">"הצגת ההסבר הקצר"</string>
+    <string name="top_bar_title">מתכוניה</string>
+    <string name="total_recipes_count">סה\"כ מתכונים: %1$d</string>
+    <string name="unknown_error">אירעה שגיאה לא צפויה</string>
+    <string name="update_app_subtitle">בדוק אם קיימת גרסה חדשה של האפליקציה</string>
+    <string name="update_app_title">עדכון אפליקציה</string>
+    <string name="update_available">עדכון זמין</string>
+    <string name="update_button">עדכן</string>
+    <string name="update_check_error">שגיאה בבדיקת עדכון</string>
+    <string name="update_dialog_message">קיימת גרסה חדשה לאפליקציה. האם ברצונך לעדכן כעת?</string>
+    <string name="update_dialog_title">עדכון גרסה</string>
+    <string name="update_system_recipes_subtitle">בדוק אם נוספו מתכונים חדשים לאוסף המובנה</string>
+    <string name="update_system_recipes_title">עדכון מתכוני מערכת</string>
+    <string name="url_hint">הדבק/י כאן קישור למתכון</string>
+    <string name="url_label">קישור למתכון</string>
+    <string name="username_label">שם משתמש</string>
+    <string name="version_label">גרסה %1$s</string>
+    <string name="welcome_dev_mode">ברוך הבא למצב מפתח!</string>
+    <string name="what_is_needed">מה צריך?</string>
+</resources>

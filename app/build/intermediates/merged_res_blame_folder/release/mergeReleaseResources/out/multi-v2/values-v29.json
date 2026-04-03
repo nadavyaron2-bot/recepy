@@ -1,0 +1,39 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.example.recepy.app-mergeReleaseResources-49:/values-v29/values-v29.xml",
+            "map": [
+                {
+                    "source": "/home/runner/.gradle/caches/9.3.1/transforms/f25b629206916bd1fc7d2ee1847e8f3a/transformed/core-splashscreen-1.2.0/res/values-v29/values-v29.xml",
+                    "from": {
+                        "startLines": "2,8",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,442",
+                        "endLines": "7,8",
+                        "endColumns": "12,82",
+                        "endOffsets": "437,520"
+                    }
+                },
+                {
+                    "source": "/home/runner/.gradle/caches/9.3.1/transforms/1c1e346062606ed550ffbdb3a7a15085/transformed/glance-appwidget-1.1.1/res/values-v29/values-v29.xml",
+                    "from": {
+                        "startLines": "2,5,19,22,25,26,27",
+                        "startColumns": "4,4,4,4,4,4,4",
+                        "startOffsets": "55,244,1048,1239,1430,1519,1585",
+                        "endLines": "4,18,21,24,25,26,27",
+                        "endColumns": "12,12,12,12,88,65,65",
+                        "endOffsets": "239,1043,1234,1425,1514,1580,1646"
+                    },
+                    "to": {
+                        "startLines": "9,12,26,29,32,33,34",
+                        "startColumns": "4,4,4,4,4,4,4",
+                        "startOffsets": "525,714,1518,1709,1900,1989,2055",
+                        "endLines": "11,25,28,31,32,33,34",
+                        "endColumns": "12,12,12,12,88,65,65",
+                        "endOffsets": "709,1513,1704,1895,1984,2050,2116"
+                    }
+                }
+            ]
+        }
+    ]
+}

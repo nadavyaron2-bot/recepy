@@ -1,0 +1,7 @@
+com.example.recepy.app-pngs-0 /home/runner/work/recepy/recepy/app/build/generated/res/pngs/release
+com.example.recepy.app-updated_navigation_xml-1 /home/runner/work/recepy/recepy/app/build/generated/updated_navigation_xml/release
+com.example.recepy.app-packageReleaseResources-2 /home/runner/work/recepy/recepy/app/build/intermediates/incremental/release/packageReleaseResources/merged.dir
+com.example.recepy.app-packageReleaseResources-3 /home/runner/work/recepy/recepy/app/build/intermediates/incremental/release/packageReleaseResources/stripped.dir
+com.example.recepy.app-release-4 /home/runner/work/recepy/recepy/app/build/intermediates/merged_res/release/mergeReleaseResources
+com.example.recepy.app-main-5 /home/runner/work/recepy/recepy/app/src/main/res
+com.example.recepy.app-release-6 /home/runner/work/recepy/recepy/app/src/release/res

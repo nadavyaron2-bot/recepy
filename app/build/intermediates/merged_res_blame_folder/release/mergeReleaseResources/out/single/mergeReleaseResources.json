@@ -1,0 +1,158 @@
+[
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.example.recepy.app-main-52:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable-xhdpi_ic_action_name.png.flat",
+        "source": "com.example.recepy.app-main-52:/drawable-xhdpi/ic_action_name.png"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable-mdpi_ic_action_name.png.flat",
+        "source": "com.example.recepy.app-main-52:/drawable-mdpi/ic_action_name.png"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-mdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable-xxhdpi_ic_action_name.png.flat",
+        "source": "com.example.recepy.app-main-52:/drawable-xxhdpi/ic_action_name.png"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/xml_data_extraction_rules.xml.flat",
+        "source": "com.example.recepy.app-main-52:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable_app_icon_foreground.xml.flat",
+        "source": "com.example.recepy.app-main-52:/drawable/app_icon_foreground.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xxhdpi_app_icon.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xxhdpi/app_icon.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/xml_backup_rules.xml.flat",
+        "source": "com.example.recepy.app-main-52:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-hdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xxhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-mdpi_app_icon.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-mdpi/app_icon.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable-anydpi_ic_action_name.xml.flat",
+        "source": "com.example.recepy.app-main-52:/drawable-anydpi/ic_action_name.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable_app_icon_monochrome.xml.flat",
+        "source": "com.example.recepy.app-main-52:/drawable/app_icon_monochrome.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/xml_shortcuts.xml.flat",
+        "source": "com.example.recepy.app-main-52:/xml/shortcuts.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xxxhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xxxhdpi_app_icon_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xxxhdpi/app_icon_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/xml_recepy_widget_info.xml.flat",
+        "source": "com.example.recepy.app-main-52:/xml/recepy_widget_info.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.example.recepy.app-main-52:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xxxhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-mdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/font_nunito_regular.xml.flat",
+        "source": "com.example.recepy.app-main-52:/font/nunito_regular.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xhdpi_app_icon_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xhdpi/app_icon_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xxxhdpi_app_icon.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xxxhdpi/app_icon.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xxhdpi_app_icon_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xxhdpi/app_icon_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-anydpi-v26_app_icon_round.xml.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-anydpi-v26/app_icon_round.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/drawable-hdpi_ic_action_name.png.flat",
+        "source": "com.example.recepy.app-main-52:/drawable-hdpi/ic_action_name.png"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-hdpi_app_icon_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-hdpi/app_icon_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-hdpi_app_icon.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-hdpi/app_icon.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-hdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xxhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-mdpi_app_icon_round.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-mdpi/app_icon_round.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/xml_file_paths.xml.flat",
+        "source": "com.example.recepy.app-main-52:/xml/file_paths.xml"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-xhdpi_app_icon.webp.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-xhdpi/app_icon.webp"
+    },
+    {
+        "merged": "com.example.recepy.app-release-51:/mipmap-anydpi-v26_app_icon.xml.flat",
+        "source": "com.example.recepy.app-main-52:/mipmap-anydpi-v26/app_icon.xml"
+    }
+]
