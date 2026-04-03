@@ -1,5 +1,5 @@
 {
-  "versionCode": versionProps['versionCode'].toInteger,
-  "versionName": "vName",
+  "versionCode": 37,
+  "versionName": "1.2.8",
   "downloadUrl": "https://github.com/nadavyaron2-bot/recepy/raw/refs/heads/master/update/app-release.apk"
 }
