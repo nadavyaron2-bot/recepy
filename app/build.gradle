@@ -12,8 +12,8 @@ android {
         applicationId "com.example.recepy"
         minSdk 26
         targetSdk libs.versions.targetSdk.get().toInteger()
-        versionCode 28
-        versionName "1.2.1"
+        versionCode 29
+        versionName "1.2.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

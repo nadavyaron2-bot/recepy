@@ -10,6 +10,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.recepy.R
 import com.example.recepy.data.local.AppDatabase
+import android.util.Log
 import com.example.recepy.data.local.ShoppingItem
 import com.example.recepy.data.repository.Recipe
 import com.example.recepy.data.repository.RecipeRepository
@@ -85,7 +86,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _reportedBugs = MutableStateFlow<List<String>>(emptyList())
     val reportedBugs: StateFlow<List<String>> = _reportedBugs.asStateFlow()
 
-    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkHVM4ikm9jMKXhCg7KtYD54Q6yXOfTTtotJh1soz4qdPs1Jjmy5Aa4zupfaaeerNiLw/exec"
+    private val SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8qsm-oDBilLk4GvsxxpluCCOeRTDUVXjzEzm3LaSd-2XrqlOyoRlkIocYJahyrgxnFA/exec"
 
     fun reportBug(bug: String) {
         viewModelScope.launch {
@@ -144,9 +145,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun syncDeveloperDataWithRemote(action: String, type: String, description: String) {
         withContext(Dispatchers.IO) {
-            runCatching {
-                // Use form data (.data()) instead of requestBody(json) for better compatibility with Google Apps Script
-                // We send both 'description' and 'content' keys to ensure compatibility with different script versions
+            val result = runCatching {Log.d("MainViewModel", "Sending $action for $type to remote...")
                 org.jsoup.Jsoup.connect(SCRIPT_URL)
                     .ignoreContentType(true)
                     .data("action", action)
@@ -156,10 +155,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     .data("date", System.currentTimeMillis().toString())
                     .method(org.jsoup.Connection.Method.POST)
                     .followRedirects(true)
+                    .timeout(10000)
                     .execute()
-            }.onFailure { it.printStackTrace() }
+            }
 
-            // Always refresh data after any remote action to ensure UI reflects the "truth" from the table
+            result.onSuccess { response ->
+                Log.d("MainViewModel", "Remote sync success! Response code: ${response.statusCode()}")
+            }.onFailure { e ->
+                Log.e("MainViewModel", "Remote sync failed: ${e.message}", e)
+            }
+
             fetchDeveloperData()
             if (type == "group" || type == "group_recipe") {
                 fetchGroups()
